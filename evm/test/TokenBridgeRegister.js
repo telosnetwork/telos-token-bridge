@@ -14,7 +14,7 @@ describe("TokenBridgeRegister Contract", function () {
         let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
         erc20bridgeable = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
         let TokenRegister = await ethers.getContractFactory("TokenBridgeRegister");
-        register = await TokenRegister.deploy();
+        register = await TokenRegister.deploy(MAX_REQUESTS);
         let EVMBridge = await ethers.getContractFactory("TokenBridge");
         evm_bridge = await EVMBridge.deploy(antelope_bridge.address, register.address, MAX_REQUESTS, HALF_TLOS);
     })
