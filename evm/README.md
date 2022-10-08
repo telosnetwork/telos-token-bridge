@@ -6,7 +6,21 @@ This is the EVM part of our Token Bridge repository
 
 ### TokenBridge.sol
 
+#### Events
+
+- `event  BridgeToAntelopeRequested(address indexed sender, address indexed token, uint amount, string recipient);`
+- `event  BridgeToAntelopeSucceeded(address indexed sender, address indexed token, uint amount, string recipient);`
+- `event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);`
+
 ### TokenBridgeRegister.sol
+
+#### Events
+
+- `event  Registered(address indexed token, string antelope_account, string symbol, string name);`
+- `event  Approved(address indexed token, string symbol, string name);`
+- `event  Paused(address indexed token, string symbol, string name);`
+- `event  Unpaused(address indexed token, string symbol, string name);`
+- `event  Deleted(address indexed token, string symbol, string name);`
 
 ### ERC20Bridgeable.sol
 
