@@ -6,7 +6,7 @@ This is the EVM part of our Token Bridge repository
 
 ### TokenBridge.sol
 
-### TokenRegister.sol
+### TokenBridgeRegister.sol
 
 ### ERC20Bridgeable.sol
 
