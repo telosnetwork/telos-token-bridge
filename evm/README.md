@@ -6,6 +6,12 @@ This is the EVM part of our Token Bridge repository
 
 ### TokenBridge.sol
 
+#### Events
+
+- `event  BridgeToAntelopeRequested(address indexed sender, address indexed token, uint amount, string recipient);`
+- `event  BridgeToAntelopeSucceeded(address indexed sender, address indexed token, uint amount, string recipient);`
+- `event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);`
+
 ### TokenBridgeRegister.sol
 
 ### ERC20Bridgeable.sol
