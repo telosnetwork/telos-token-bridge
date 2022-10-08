@@ -104,12 +104,17 @@ contract TokenBridge is Ownable {
      }
 
      // TO ANTELOPE
-     function bridgeFrom(IERC20Bridgeable token, uint amount, string calldata receiver) external payable {
+     function bridge(IERC20Bridgeable token, uint amount, string calldata receiver) external payable {
         require(msg.value >= fee, "Needs TLOS fee passed");
         require(request_counts[msg.sender] < max_requests, "Maximum requests reached. Please wait for them to complete before trying again.");
-        // TODO: Check token registered
-        // TODO: ALLOWANCE
-        // BURN TOKENS
+
+        // Check token is registered
+        ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
+        require(tokenData.active, "Bridging is paused for token.");
+
+        // TODO: check allowance is ok
+
+        // Burn it <(;;)>
         try token.burnFrom(msg.sender, amount){
             // ADD REQUEST (TOKENS ALREADY BURNED)
             requests.push(Request (count, msg.sender, address(token), amount, block.timestamp, receiver));
