@@ -31,7 +31,11 @@ describe("TokenBridgeRegister Contract", function () {
         });
         it("Should not let other addresses add a token" , async function () {
         });
+        it("Should let both bridges remove a token" , async function () {
+        });
         it("Should not let other addresses remove a token" , async function () {
+        });
+        it("Should let both bridges pause a token" , async function () {
         });
         it("Should not let other addresses pause a token" , async function () {
         });

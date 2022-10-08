@@ -10,6 +10,10 @@ interface IERC20Bridgeable {
 }
 
 contract TokenBridgeRegister is Ownable {
+    event  Registered(address indexed token, string antelope_account, string symbol, string name);
+    event  Paused(address indexed token, string symbol);
+    event  Unpaused(address indexed token, string symbol);
+    event  Deleted(address indexed token, string symbol);
 
     address public bridge;
     address public antelope_bridge;
@@ -17,6 +21,8 @@ contract TokenBridgeRegister is Ownable {
     uint count;
 
     struct Token {
+        bool active;
+        uint id;
         address evm_address;
         uint8 evm_decimals;
         uint8 antelope_decimals;
@@ -45,6 +51,7 @@ contract TokenBridgeRegister is Ownable {
      function setBridge(address _bridge) external onlyOwner {
         bridge = _bridge;
      }
+
      function setAntelopeBridge(address _antelope_bridge) external onlyOwner {
         antelope_bridge = _antelope_bridge;
      }
@@ -53,10 +60,12 @@ contract TokenBridgeRegister is Ownable {
     function addToken () external onlyBridges {
 
     }
-    function pauseToken () external onlyBridges {
+
+    function pauseToken (uint id) external onlyBridges {
 
     }
-    function removeToken () external onlyBridges {
+
+    function removeToken (uint id) external onlyBridges {
 
     }
 }
