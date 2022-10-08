@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 interface IERC20Bridgeable {
  function burnFrom(address _account, uint256 _amount) external;
  function mint(address _recipient, uint256 _amount) external;
- function allowance(address owner, address spender) external;
+ function allowance(address owner, address spender) external returns(uint);
 }
 
 interface ITokenBridgeRegister {
@@ -25,8 +25,9 @@ interface ITokenBridgeRegister {
 }
 
 contract TokenBridge is Ownable {
-    event  Sent(address indexed sender, address indexed token, uint amount, string recipient);
-    event  Received(address indexed recipient, address indexed token, uint amount);
+    event  BridgeToAntelopeRequested(address indexed sender, address indexed token, uint amount, string recipient);
+    event  BridgeToAntelopeSucceeded(address indexed sender, address indexed token, uint amount, string recipient);
+    event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);
 
     uint fee;
     uint8 max_requests;
@@ -46,14 +47,14 @@ contract TokenBridge is Ownable {
     Request[] requests;
 
     mapping(address => uint) request_counts;
-    uint count;
+    uint id_count;
 
     constructor(address _bridge_evm_address, ITokenBridgeRegister _token_register,  uint8 _max_requests, uint _fee) {
         fee = _fee;
         token_register = _token_register;
         max_requests = _max_requests;
         bridge_evm_address = _bridge_evm_address;
-        count = 0;
+        id_count = 0;
     }
 
     modifier onlyBridge() {
@@ -78,15 +79,27 @@ contract TokenBridge is Ownable {
      }
 
      // MAIN   ================================================================ >
-     // REMOVE A REQUEST
+     // SUCCESS ANTELOPE CALLBACK
+     function requestSuccessful(uint id) external onlyBridge {
+        for(uint i = 0; i < requests.length; i++){
+            if(requests[i].id == id){
+                _removeRequest(i);
+                emit BridgeToAntelopeSucceeded(requests[i].sender, requests[i].token, requests[i].amount, requests[i].receiver);
+            }
+        }
+     }
+
+     function _removeRequest(uint i) internal {
+        address sender = requests[i].sender;
+        requests[i] = requests[requests.length - 1];
+        requests.pop();
+        request_counts[sender]--;
+     }
+
      function removeRequest(uint id) external onlyBridge returns (bool) {
         for(uint i = 0; i < requests.length; i++){
             if(requests[i].id == id){
-                require(msg.sender == owner(), "Only the owner can delete a request by id");
-                address sender = requests[i].sender;
-                requests[i] = requests[requests.length - 1];
-                requests.pop();
-                request_counts[sender]--;
+                _removeRequest(i);
                 return true;
             }
         }
@@ -98,7 +111,7 @@ contract TokenBridge is Ownable {
         ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
         require(tokenData.active, "Bridging is paused for token.");
         try token.mint(receiver, amount) {
-
+            emit BridgeFromAntelopeSucceeded(receiver, address(token), amount);
         } catch {
             revert('Token cannot be minted');
         }
@@ -113,17 +126,18 @@ contract TokenBridge is Ownable {
         ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
         require(tokenData.active, "Bridging is paused for token.");
 
-        // TODO: check allowance is ok
-        uint remaining = token.allowance(address(msg.sender), address(this));
+        // Check allowance is ok
+        uint remaining = token.allowance(msg.sender, address(this));
         require(remaining >= amount, "Allowance is too low");
 
         // Burn it <(;;)>
         try token.burnFrom(msg.sender, amount){
             // ADD REQUEST (TOKENS ALREADY BURNED)
-            requests.push(Request (count, msg.sender, address(token), amount, block.timestamp, receiver));
+            requests.push(Request (id_count, msg.sender, address(token), amount, block.timestamp, receiver));
             request_counts[msg.sender]++;
-            // INCREMENT COUNT FOR ID
-            count++;
+            // Increment id count
+            id_count++;
+            emit BridgeToAntelopeRequested(msg.sender, address(token), amount, receiver);
         } catch {
             revert('Tokens could not be burned...');
         }
