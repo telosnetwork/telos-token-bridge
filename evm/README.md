@@ -17,9 +17,10 @@ This is the EVM part of our Token Bridge repository
 #### Events
 
 - `event  Registered(address indexed token, string antelope_account, string symbol, string name);`
-- `event  Paused(address indexed token, string symbol);`
-- `event  Unpaused(address indexed token, string symbol);`
-- `event  Deleted(address indexed token, string symbol);`
+- `event  Approved(address indexed token, string symbol, string name);`
+- `event  Paused(address indexed token, string symbol, string name);`
+- `event  Unpaused(address indexed token, string symbol, string name);`
+- `event  Deleted(address indexed token, string symbol, string name);`
 
 ### ERC20Bridgeable.sol
 
