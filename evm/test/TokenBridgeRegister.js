@@ -11,31 +11,28 @@ describe("TokenBridgeRegister Contract", function () {
     let antelope_bridge, evm_bridge, user, erc20bridgeable, register;
     beforeEach(async () => {
         [antelope_bridge, user] = await ethers.getSigners();
-        let EVMBridge = await ethers.getContractFactory("TokenBridge");
-        evm_bridge = await EVMBridge.deploy(antelope_bridge.address, MAX_REQUESTS, HALF_TLOS);
         let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
-        erc20bridgeable = await ERC20Bridgeable.deploy(antelope_bridge.address, TOKEN_NAME, TOKEN_SYMBOL);
+        erc20bridgeable = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
         let TokenRegister = await ethers.getContractFactory("TokenBridgeRegister");
-        register = await TokenRegister.deploy(evm_bridge.address, antelope_bridge.address);
+        register = await TokenRegister.deploy();
+        let EVMBridge = await ethers.getContractFactory("TokenBridge");
+        evm_bridge = await EVMBridge.deploy(antelope_bridge.address, register.address, MAX_REQUESTS, HALF_TLOS);
     })
     describe(":: Deployment", async function () {
-        it("Should have the right Antelope bridge evm address" , async function () {
-            expect(await register.antelope_bridge()).to.equal(antelope_bridge.address);
-        });
-        it("Should have the right EVM bridge address" , async function () {
-            expect(await register.bridge()).to.equal(evm_bridge.address);
-        });
+
     });
     describe(":: Token CRUD", async function () {
-        it("Should let both bridges add a token" , async function () {
+        it("Should let owner add a token" , async function () {
         });
         it("Should not let other addresses add a token" , async function () {
         });
-        it("Should let both bridges remove a token" , async function () {
+        it("Should let owner remove a token" , async function () {
         });
         it("Should not let other addresses remove a token" , async function () {
         });
-        it("Should let both bridges pause a token" , async function () {
+        it("Should let owner pause a token" , async function () {
+        });
+        it("Should let token owner pause a token" , async function () {
         });
         it("Should not let other addresses pause a token" , async function () {
         });

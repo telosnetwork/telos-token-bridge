@@ -15,9 +15,6 @@ contract TokenBridgeRegister is Ownable {
     event  Unpaused(address indexed token, string symbol);
     event  Deleted(address indexed token, string symbol);
 
-    address public bridge;
-    address public antelope_bridge;
-
     uint count;
 
     struct Token {
@@ -33,39 +30,35 @@ contract TokenBridgeRegister is Ownable {
 
     Token[] public tokens;
 
-    constructor(address _bridge, address _antelope_bridge) {
-        bridge = _bridge;
-        antelope_bridge = _antelope_bridge;
+    constructor() {
         count = 0;
     }
 
-    modifier onlyBridges() {
-        require(
-            bridge == msg.sender || antelope_bridge == msg.sender,
-            "Only the EVM or Antelope bridges can trigger this method !"
-        );
-        _;
+    // GETTERS
+    function getToken(address token) external view returns (Token memory) {
+        for(uint i = 0; i < tokens.length;i++){
+            if(token == tokens[i].evm_address){
+                return tokens[i];
+            }
+        }
+        revert('Token not found');
     }
-
-     // SETTERS  ================================================================ >
-     function setBridge(address _bridge) external onlyOwner {
-        bridge = _bridge;
-     }
-
-     function setAntelopeBridge(address _antelope_bridge) external onlyOwner {
-        antelope_bridge = _antelope_bridge;
-     }
 
      // MAIN   ================================================================ >
-    function addToken () external onlyBridges {
-
+    function registerToken () external {
+        // TODO: LET USERS ADD TOKENS
+        // NEED TO CHECK ERC20 BRIDGEABLE COMPLIANCE
     }
 
-    function pauseToken (uint id) external onlyBridges {
-
+    function addToken () external onlyOwner {
+        // TODO: Let prods.evm add a token
     }
 
-    function removeToken (uint id) external onlyBridges {
+    function pauseToken (uint id) external onlyOwner {
+        // TODO: Let prods.evm pause a token (maybe let token owner too ??)
+    }
 
+    function removeToken (uint id) external onlyOwner {
+        // TODO: Let prods.evm remove a token
     }
 }

@@ -9,6 +9,20 @@ interface IERC20Bridgeable {
  function mint(address _recipient, uint256 _amount) external;
 }
 
+interface ITokenBridgeRegister {
+ struct Token {
+    bool active;
+    uint id;
+    address evm_address;
+    uint8 evm_decimals;
+    uint8 antelope_decimals;
+    string antelope_account;
+    string symbol;
+    string name;
+ }
+ function getToken(address _token) external view returns(Token memory);
+}
+
 contract TokenBridge is Ownable {
     event  Sent(address indexed sender, address indexed token, uint amount, string recipient);
     event  Received(address indexed recipient, address indexed token, uint amount);
@@ -17,6 +31,7 @@ contract TokenBridge is Ownable {
     uint8 max_requests;
 
     address bridge_evm_address;
+    ITokenBridgeRegister token_register;
 
     struct Request {
         uint id;
@@ -32,8 +47,9 @@ contract TokenBridge is Ownable {
     mapping(address => uint) request_counts;
     uint count;
 
-    constructor(address _bridge_evm_address,  uint8 _max_requests, uint _fee) {
+    constructor(address _bridge_evm_address, ITokenBridgeRegister _token_register,  uint8 _max_requests, uint _fee) {
         fee = _fee;
+        token_register = _token_register;
         max_requests = _max_requests;
         bridge_evm_address = _bridge_evm_address;
         count = 0;
@@ -42,7 +58,7 @@ contract TokenBridge is Ownable {
     modifier onlyBridge() {
         require(
             bridge_evm_address == msg.sender,
-            "TokenBridge: only the Antelope bridge can trigger this method !"
+            "Only the Antelope bridge EVM address can trigger this method !"
         );
         _;
     }
@@ -78,11 +94,12 @@ contract TokenBridge is Ownable {
 
      // FROM ANTELOPE BRIDGE
      function bridgeTo(IERC20Bridgeable token, address receiver, uint amount) external onlyBridge {
-        // TODO: Check token registered
-        try token.mint(receiver, amount){
+        ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
+        require(tokenData.active, "Bridging is paused for token.");
+        try token.mint(receiver, amount) {
 
         } catch {
-            revert('Tokens could not be minted');
+            revert('Token cannot be minted');
         }
      }
 
