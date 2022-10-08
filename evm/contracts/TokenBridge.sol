@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 interface IERC20Bridgeable {
  function burnFrom(address _account, uint256 _amount) external;
  function mint(address _recipient, uint256 _amount) external;
+ function allowance(address owner, address spender) external;
 }
 
 interface ITokenBridgeRegister {
@@ -115,7 +116,7 @@ contract TokenBridge is Ownable {
         // TODO: check allowance is ok
         uint remaining = token.allowance(address(msg.sender), address(this));
         require(remaining >= amount, "Allowance is too low");
-        
+
         // Burn it <(;;)>
         try token.burnFrom(msg.sender, amount){
             // ADD REQUEST (TOKENS ALREADY BURNED)
