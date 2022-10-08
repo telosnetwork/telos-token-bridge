@@ -1,1 +1,1 @@
-# Telos Token Bridge
+# Telos Antelope <> EVM Token Bridge
