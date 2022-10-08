@@ -1,0 +1,15 @@
+{
+  "name": "token-bridge-evm",
+  "version": "1.0.0",
+  "description": "EVM side of Telos Token Bridge",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Thomas Cuvillier",
+  "license": "ISC",
+  "dependencies": {
+    "hardhat": "^2.11.2",
+    "hardhat-deploy": "^0.11.16"
+  }
+}
