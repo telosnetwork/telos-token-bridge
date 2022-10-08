@@ -5,8 +5,8 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IERC20Bridgeable {
- function burnFrom(address _account, uint256 _amount) public virtual;
- function mint(address _recipient, uint256 _amount);
+ function burnFrom(address _account, uint256 _amount) external;
+ function mint(address _recipient, uint256 _amount) external;
 }
 
 contract TokenBridge is Ownable {
@@ -14,25 +14,25 @@ contract TokenBridge is Ownable {
     event  Received(address indexed recipient, address indexed token, uint amount);
 
     uint fee;
-    uint8 _max_requests;
+    uint8 max_requests;
 
     address bridge_evm_address;
 
     struct Request {
-        uint id
-        address sender
-        address token
-        uint amount
-        timestamp requested_at
-        string receiver
+        uint id;
+        address sender;
+        address token;
+        uint amount;
+        uint requested_at;
+        string receiver;
     }
 
     Request[] requests;
 
-    mapping(address => uint) request_counts
+    mapping(address => uint) request_counts;
     uint count;
 
-    constructor(uint _fee, uint _max_requests, address _bridge_evm_address) {
+    constructor(address _bridge_evm_address,  uint8 _max_requests, uint _fee) {
         fee = _fee;
         max_requests = _max_requests;
         bridge_evm_address = _bridge_evm_address;
@@ -48,19 +48,16 @@ contract TokenBridge is Ownable {
     }
 
      // SETTERS  ================================================================ >
-     function setFee(uint _fee) external onlyOwner returns(bool) {
+     function setFee(uint _fee) external onlyOwner {
         fee = _fee;
-        return true;
      }
 
-     function setMaxRequests(uint8 _max_requests) external onlyOwner returns(bool) {
+     function setMaxRequests(uint8 _max_requests) external onlyOwner {
         max_requests = _max_requests;
-        return true;
      }
 
-     function setOracleEvmAddress(address _oracle_evm_address) external onlyOwner returns(bool) {
-        oracle_evm_address = _oracle_evm_address;
-        return true;
+     function setBridgeEvmAddress(address _bridge_evm_address) external onlyOwner {
+        bridge_evm_address = _bridge_evm_address;
      }
 
      // MAIN   ================================================================ >
@@ -72,7 +69,7 @@ contract TokenBridge is Ownable {
                 address sender = requests[i].sender;
                 requests[i] = requests[requests.length - 1];
                 requests.pop();
-                requests_count[sender]--;
+                request_counts[sender]--;
                 return true;
             }
         }
@@ -80,7 +77,7 @@ contract TokenBridge is Ownable {
      }
 
      // FROM ANTELOPE BRIDGE
-     function bridgeTo(IERC20Bridgeable token, address receiver) external onlyBridge {
+     function bridgeTo(IERC20Bridgeable token, address receiver, uint amount) external onlyBridge {
         // TODO: Check token registered
         try token.mint(receiver, amount){
 
@@ -90,16 +87,16 @@ contract TokenBridge is Ownable {
      }
 
      // TO ANTELOPE
-     function bridgeFrom(IERC20Burnable token, uint amount, string calldata receiver) external payable {
-        check(msg.value >= fee, "Needs TLOS fee passed");
-        check(requests_count[caller] < max_requests, "Maximum requests reached. Please wait for them to complete before trying again.");
+     function bridgeFrom(IERC20Bridgeable token, uint amount, string calldata receiver) external payable {
+        require(msg.value >= fee, "Needs TLOS fee passed");
+        require(request_counts[msg.sender] < max_requests, "Maximum requests reached. Please wait for them to complete before trying again.");
         // TODO: Check token registered
         // TODO: ALLOWANCE
         // BURN TOKENS
         try token.burnFrom(msg.sender, amount){
             // ADD REQUEST (TOKENS ALREADY BURNED)
-            requests.push(Request (count, msg.sender, token, amount, block.timestamp, receiver));
-            requests_count[msg.sender]++;
+            requests.push(Request (count, msg.sender, address(token), amount, block.timestamp, receiver));
+            request_counts[msg.sender]++;
             // INCREMENT COUNT FOR ID
             count++;
         } catch {

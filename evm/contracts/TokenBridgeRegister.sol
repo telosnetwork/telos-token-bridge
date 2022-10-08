@@ -5,14 +5,14 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IERC20Bridgeable {
- function burnFrom(address _account, uint256 _amount) public virtual;
- function mint(address _recipient, uint256 _amount);
+ function burnFrom(address _account, uint256 _amount) external;
+ function mint(address _recipient, uint256 _amount) external;
 }
 
 contract TokenBridgeRegister is Ownable {
 
-    address bridge;
-    address antelope_bridge;
+    address public bridge;
+    address public antelope_bridge;
 
     uint count;
 

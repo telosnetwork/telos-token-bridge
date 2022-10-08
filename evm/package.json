@@ -9,7 +9,15 @@
   "author": "Thomas Cuvillier",
   "license": "ISC",
   "dependencies": {
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
     "hardhat": "^2.11.2",
     "hardhat-deploy": "^0.11.16"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.1.1",
+    "@openzeppelin/contracts": "^4.7.3",
+    "chai": "^4.3.6",
+    "ethereum-waffle": "^3.4.4",
+    "solidity-coverage": "^0.8.2"
   }
 }

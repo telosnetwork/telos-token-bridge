@@ -16,13 +16,13 @@ describe("TokenBridgeRegister Contract", function () {
         let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
         erc20bridgeable = await ERC20Bridgeable.deploy(antelope_bridge.address, TOKEN_NAME, TOKEN_SYMBOL);
         let TokenRegister = await ethers.getContractFactory("TokenBridgeRegister");
-        register = await TokenRegister.deploy(antelope_bridge.address, evm_bridge.address);
+        register = await TokenRegister.deploy(evm_bridge.address, antelope_bridge.address);
     })
     describe(":: Deployment", async function () {
-        it("Should have the right antelope bridge evm address" , async function () {
-            expect(await register.bridge()).to.equal(antelope_bridge.address);
+        it("Should have the right Antelope bridge evm address" , async function () {
+            expect(await register.antelope_bridge()).to.equal(antelope_bridge.address);
         });
-        it("Should have the right evm bridge address" , async function () {
+        it("Should have the right EVM bridge address" , async function () {
             expect(await register.bridge()).to.equal(evm_bridge.address);
         });
     });
