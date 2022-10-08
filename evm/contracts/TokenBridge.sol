@@ -113,7 +113,9 @@ contract TokenBridge is Ownable {
         require(tokenData.active, "Bridging is paused for token.");
 
         // TODO: check allowance is ok
-
+        uint remaining = token.allowance(address(msg.sender), address(this));
+        require(remaining >= amount, "Allowance is too low");
+        
         // Burn it <(;;)>
         try token.burnFrom(msg.sender, amount){
             // ADD REQUEST (TOKENS ALREADY BURNED)
