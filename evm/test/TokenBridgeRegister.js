@@ -97,6 +97,8 @@ describe("TokenBridgeRegister Contract", function () {
         it("Should not allow a registration request if token is registered" , async function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
             expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
+            await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.be.revertedWith('Token already registered');
         });
     });
     describe(":: Token CRUD", async function () {
@@ -115,6 +117,10 @@ describe("TokenBridgeRegister Contract", function () {
     });
     describe(":: Getters", async function () {
         it("Should return an existing token by address" , async function () {
+            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
+            await expect(register.getToken(token.address)).to.not.be.reverted;
         });
     });
 });
