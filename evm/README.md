@@ -16,7 +16,7 @@ This is the main EVM contract for the token bridge.
 
 ### PairBridgeRegister.sol
 
-This is the token pairs register for the bridge. Token owners can request registration and sign the request from Antelope, the prods.evm owner evm address can invoke CRUD operations on tokens & approve requests.
+This is the token pairs register for the bridge. Token owners can request registration and sign the request from Antelope, the prods.evm owner evm address can invoke CRUD operations on the pairs & approve requests.
 
 #### Events
 
