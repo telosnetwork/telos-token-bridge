@@ -29,6 +29,11 @@ This is the token pairs register for the bridge. Token owners can request regist
 - `event  PairUnpaused(uint pair_id, address indexed evm_token, string symbol);`
 - `event  PairDeleted(uint pair_id, address indexed evm_token, string symbol);`
 
+#### Public functions
+
+- `function getPair(address evm_token_address)`
+- `function getPairByAntelopeAccount(string antelope_account)`
+
 ### ERC20Bridgeable.sol
 
 This is an example ERC20 token compatible with our bridge, developers can extend it to write their own !
