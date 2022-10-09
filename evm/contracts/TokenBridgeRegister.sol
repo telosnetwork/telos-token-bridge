@@ -13,8 +13,9 @@ interface IERC20Bridgeable {
 }
 
 contract TokenBridgeRegister is Ownable {
-    event  RegistrationRequested(address indexed token, string antelope_account, string symbol, string name);
-    event  Approved(address indexed token, string symbol, string name);
+    event  RegistrationRequested(address indexed token, string antelope_name,  string symbol, string name);
+    event  RegistrationRequestSigned(uint request, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
+    event  RegistrationRequestApproved(address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  Paused(address indexed token, string symbol, string name);
     event  Unpaused(address indexed token, string symbol, string name);
     event  Deleted(address indexed token, string symbol, string name);
@@ -32,6 +33,7 @@ contract TokenBridgeRegister is Ownable {
         uint8 evm_decimals;
         uint8 antelope_decimals;
         string antelope_account_name;
+        string antelope_name;
         string symbol;
         string name;
     }
@@ -44,6 +46,7 @@ contract TokenBridgeRegister is Ownable {
         uint8 antelope_decimals;
         uint timestamp;
         string antelope_account_name;
+        string antelope_name;
         string symbol;
         string name;
     }
@@ -114,7 +117,7 @@ contract TokenBridgeRegister is Ownable {
         string memory name = token.name();
 
         // Add token request
-        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, antelope_account_name, symbol, name ));
+        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, antelope_account_name, "", symbol, name ));
         request_id++;
         request_counts[msg.sender]++;
         emit RegistrationRequested(address(token), antelope_account_name, symbol, name);
@@ -122,11 +125,13 @@ contract TokenBridgeRegister is Ownable {
     }
 
     // Let Antelope bridge sign request (after verification of the eosio.token token there)
-    function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name) external onlyBridge {
+    function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_name) external onlyBridge {
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                requests[i].antelope_account_name = _antelope_account_name;
+               requests[i].antelope_name = _antelope_name;
                requests[i].antelope_decimals = _antelope_decimals;
+               emit RegistrationRequestSigned(requests[i].id, requests[i].evm_address,  _antelope_account_name, _antelope_name, requests[i].symbol, requests[i].name);
             }
         }
         revert('Request not found');
@@ -160,7 +165,7 @@ contract TokenBridgeRegister is Ownable {
                require(requests[i].antelope_decimals > 0, "Request not signed by Antelope");
                requests[i] = requests[requests.length];
                requests.pop();
-               tokens.push(Token(true, token_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_account_name, requests[i].symbol, requests[i].name));
+               tokens.push(Token(true, token_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_account_name, requests[i].antelope_name, requests[i].symbol, requests[i].name));
                token_id++;
                return (token_id - 1);
             }

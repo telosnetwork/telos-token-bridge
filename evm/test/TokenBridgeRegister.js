@@ -7,13 +7,15 @@ const TOKEN_NAME = "My Bridgeable Token";
 const TOKEN_SYMBOL = "MBT";
 const MAX_REQUESTS = 10;
 const REQUEST_VALIDITY = 30; // 30s
+const ANTELOPE_ACCOUNT_NAME = "mytoken";
+const ANTELOPE_DECIMALS = 14;
 
 describe("TokenBridgeRegister Contract", function () {
-    let antelope_bridge, evm_bridge, user, erc20bridgeable, register;
+    let antelope_bridge, evm_bridge, user, token, register;
     beforeEach(async () => {
         [antelope_bridge, user] = await ethers.getSigners();
         let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
-        erc20bridgeable = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
+        token = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
         let TokenRegister = await ethers.getContractFactory("TokenBridgeRegister");
         register = await TokenRegister.deploy(antelope_bridge.address, MAX_REQUESTS, REQUEST_VALIDITY);
         let EVMBridge = await ethers.getContractFactory("TokenBridge");
@@ -44,9 +46,28 @@ describe("TokenBridgeRegister Contract", function () {
             expect(await register.antelope_bridge_evm_address()).to.equal(user.address);
         });
     });
-    describe(":: Token CRUD", async function () {
-        it("Should let owner add a token" , async function () {
+    describe(":: Registration Request", async function () {
+        it("Should let a token owner add a registration request" , async function () {
+            await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
         });
+        it("Should not allow two registration requests for same token" , async function () {
+            await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.be.reverted;
+        });
+        it("Should not let a random address add a registration request" , async function () {
+            await expect(register.connect(user).requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.be.reverted;
+        });
+        it("Should let the antelope bridge sign a request" , async function () {
+            await expect(register.connect(antelope_bridge).signRequest(id, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequestSigned');
+        });
+        it("Should not let a random address sign a request" , async function () {
+        });
+        it("Should let the antelope bridge approve a request" , async function () {
+        });
+        it("Should not let a random address approve a request" , async function () {
+        });
+    });
+    describe(":: Token CRUD", async function () {
         it("Should not let other addresses add a token" , async function () {
         });
         it("Should let owner remove a token" , async function () {
