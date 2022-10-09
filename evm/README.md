@@ -14,9 +14,9 @@ This is the main EVM contract for the token bridge.
 - `event  BridgeToAntelopeSucceeded(address indexed sender, address indexed token, uint amount, string recipient);`
 - `event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);`
 
-### TokenBridgeRegister.sol
+### PairBridgeRegister.sol
 
-This is the token register for the bridge. Token owner can request registration, the prods.evm owner evm address can invoke CRUD operations on tokens & approve requests.
+This is the token pairs register for the bridge. Token owners can request registration and sign the request from Antelope, the prods.evm owner evm address can invoke CRUD operations on tokens & approve requests.
 
 #### Events
 
