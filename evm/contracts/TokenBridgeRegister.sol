@@ -10,10 +10,11 @@ interface IERC20Bridgeable {
  function decimals() external returns(uint8);
  function symbol() external returns(string memory);
  function name() external returns(string memory);
+ function owner() external returns(address);
 }
 
 contract TokenBridgeRegister is Ownable {
-    event  RegistrationRequested(address indexed token, string antelope_name,  string symbol, string name);
+    event  RegistrationRequested(address requestor, address indexed token, string antelope_name,  string symbol, string name);
     event  RegistrationRequestSigned(uint request, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  RegistrationRequestApproved(address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  Paused(address indexed token, string symbol, string name);
@@ -105,9 +106,18 @@ contract TokenBridgeRegister is Ownable {
     // Let token owners ask for registration of their tokens
     // returns the uint request id
     function requestRegistration (IERC20Bridgeable token, string calldata antelope_account_name) external returns(uint) {
-        require(request_counts[msg.sender] >= max_requests_per_requestor, "Maximum request reached, please wait until approved or delete one");
+
+        require(request_counts[msg.sender] < max_requests_per_requestor, "Maximum request reached, please wait until approved or delete one");
 
         _removeOutdatedRegistrationRequests(); // Remove outdated registrations as new one are added...
+
+        // Check sender is owner
+        address owner = token.owner();
+        require(msg.sender == owner, "Sender must be token owner");
+
+        // Check exists
+        require(_tokenExists(address(token)) == false, "Token already registered");
+        require(_tokenRegistrationExists(address(token)) == false, "Token already being registered");
 
         // TODO: NEED TO CHECK ERC20 BRIDGEABLE COMPLIANCE, etc...
 
@@ -120,18 +130,20 @@ contract TokenBridgeRegister is Ownable {
         requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, antelope_account_name, "", symbol, name ));
         request_id++;
         request_counts[msg.sender]++;
-        emit RegistrationRequested(address(token), antelope_account_name, symbol, name);
+        emit RegistrationRequested(msg.sender, address(token), antelope_account_name, symbol, name);
         return (request_id - 1); // Owner needs that ID to sign from Antelope next
     }
 
     // Let Antelope bridge sign request (after verification of the eosio.token token there)
     function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_name) external onlyBridge {
+        _removeOutdatedRegistrationRequests();
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                requests[i].antelope_account_name = _antelope_account_name;
                requests[i].antelope_name = _antelope_name;
                requests[i].antelope_decimals = _antelope_decimals;
                emit RegistrationRequestSigned(requests[i].id, requests[i].evm_address,  _antelope_account_name, _antelope_name, requests[i].symbol, requests[i].name);
+               return;
             }
         }
         revert('Request not found');
@@ -139,20 +151,27 @@ contract TokenBridgeRegister is Ownable {
 
     // Let owner or registration sender delete requests
     function removeRegistrationRequest (uint id) external {
-
+        for(uint i = 0;i<requests.length;i++){
+            if(requests[i].id == id){
+                _removeRegistrationRequest(i);
+            }
+        }
     }
 
     function _removeRegistrationRequest (uint i) internal {
        address sender = requests[i].sender;
-       requests[i] = requests[requests.length];
+       requests[i] = requests[requests.length-1];
        requests.pop();
        request_counts[sender]--;
     }
 
     function _removeOutdatedRegistrationRequests () internal {
-        for(uint i = 0;i<requests.length;i++){
+        uint i = 0;
+        while(i<requests.length){
             if(requests[i].timestamp < block.timestamp - request_validity_seconds){
                 _removeRegistrationRequest(i);
+            } else {
+                i++;
             }
         }
     }
@@ -204,5 +223,23 @@ contract TokenBridgeRegister is Ownable {
             }
         }
         revert('Token not found');
+    }
+
+    // UTILS   ================================================================ >
+    function _tokenExists(address token) internal view returns (bool) {
+        for(uint i = 0; i < tokens.length;i++){
+            if(token == tokens[i].evm_address){
+                return true;
+            }
+        }
+        return false;
+    }
+    function _tokenRegistrationExists(address token) internal view returns (bool) {
+        for(uint i = 0; i < requests.length;i++){
+            if(token == requests[i].evm_address){
+                return true;
+            }
+        }
+        return false;
     }
 }
