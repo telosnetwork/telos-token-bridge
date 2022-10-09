@@ -6,6 +6,8 @@ This is the EVM part of our Token Bridge repository
 
 ### TokenBridge.sol
 
+The main EVM contract for the token bridge
+
 #### Events
 
 - `event  BridgeToAntelopeRequested(address indexed sender, address indexed token, uint amount, string recipient);`
@@ -13,6 +15,8 @@ This is the EVM part of our Token Bridge repository
 - `event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);`
 
 ### TokenBridgeRegister.sol
+
+This is the token register for the bridge. Token owner can request registration, the prods.evm owner evm address can invoke CRUD operations on tokens & approve requests.
 
 #### Events
 
@@ -26,6 +30,8 @@ This is the EVM part of our Token Bridge repository
 - `event  TokenDeleted(uint token_id, address indexed token, string symbol);`
 
 ### ERC20Bridgeable.sol
+
+This is an example ERC20 token compatible with our bridge, developers can extend it to write their own !
 
 _For test purposes only, does not get deployed_
 
