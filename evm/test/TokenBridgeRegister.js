@@ -117,8 +117,12 @@ describe("TokenBridgeRegister Contract", function () {
             await expect(register.connect(user).addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.be.revertedWith('Ownable: caller is not the owner');
         });
         it("Should let owner remove a token" , async function () {
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            expect(await register.removeToken(0)).to.emit("TokenDeleted");
         });
         it("Should not let other addresses remove a token" , async function () {
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            await expect(register.connect(user).removeToken(0)).to.be.revertedWith("Ownable: caller is not the owner");
         });
         it("Should let owner pause a token" , async function () {
             expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
@@ -128,7 +132,15 @@ describe("TokenBridgeRegister Contract", function () {
             expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
             await expect(register.connect(user).pauseToken(0)).to.be.revertedWith("Ownable: caller is not the owner");
         });
-        it("Should not let other addresses pause a token" , async function () {
+        it("Should let owner unpause a token" , async function () {
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            expect(await register.pauseToken(0)).to.emit("TokenPaused");
+            expect(await register.unpauseToken(0)).to.emit("TokenUnpaused");
+        });
+        it("Should not let other addresses unpause a token" , async function () {
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            expect(await register.pauseToken(0)).to.emit("TokenPaused");
+            await expect(register.connect(user).unpauseToken(0)).to.be.revertedWith("Ownable: caller is not the owner");
         });
     });
     describe(":: Getters", async function () {

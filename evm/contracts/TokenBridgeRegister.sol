@@ -228,8 +228,9 @@ contract TokenBridgeRegister is Ownable {
         for(uint i; i < tokens.length;i++){
             if(tokens[i].id == id){
                emit TokenDeleted(tokens[i].id, tokens[i].evm_address, tokens[i].symbol, tokens[i].name, tokens[i].antelope_account_name, tokens[i].antelope_name);
-               tokens[i] = tokens[tokens.length];
+               tokens[i] = tokens[tokens.length - 1];
                tokens.pop();
+               return;
             }
         }
         revert('Token not found');
