@@ -129,7 +129,7 @@ contract TokenBridge is Ownable {
 
         // Check token is registered
         ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
-        require(tokenData.active, "Bridging is paused for token.");
+        require(tokenData.active, "Bridging is paused for token");
 
         // Check allowance is ok
         uint remaining = token.allowance(msg.sender, address(this));
