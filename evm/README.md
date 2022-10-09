@@ -16,11 +16,14 @@ This is the EVM part of our Token Bridge repository
 
 #### Events
 
-- `event  RegistrationRequested(address indexed token, string antelope_account, string symbol, string name);`
-- `event  Approved(address indexed token, string symbol, string name);`
-- `event  Paused(address indexed token, string symbol, string name);`
-- `event  Unpaused(address indexed token, string symbol, string name);`
-- `event  Deleted(address indexed token, string symbol, string name);`
+- `event  RegistrationRequested(uint request_id, address requestor, address indexed token, string antelope_name,  string symbol, string name);`
+- `event  RegistrationRequestSigned(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);`
+- `event  RegistrationRequestApproved(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);`
+- `event  RegistrationRequestDeleted(uint request_id, address indexed token, string antelope_account);`
+- `event  TokenPaused(uint token_id, address indexed token, string symbol, string name, string antelope_account, string antelope_name);`
+- `event  TokenAdded(uint token_id, address indexed token, string symbol, string name, string antelope_account, string antelope_name);`
+- `event  TokenUnpaused(uint token_id, address indexed token, string symbol, string name, string antelope_account, string antelope_name);`
+- `event  TokenDeleted(uint token_id, address indexed token, string symbol, string name, string antelope_account, string antelope_name);`
 
 ### ERC20Bridgeable.sol
 
