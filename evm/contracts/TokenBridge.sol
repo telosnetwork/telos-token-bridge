@@ -10,8 +10,8 @@ interface IERC20Bridgeable {
  function allowance(address owner, address spender) external returns(uint);
 }
 
-interface ITokenBridgeRegister {
- struct Token {
+interface IPairBridgeRegister {
+ struct Pair {
     bool active;
     uint id;
     address evm_address;
@@ -21,7 +21,7 @@ interface ITokenBridgeRegister {
     string symbol;
     string name;
  }
- function getToken(address _token) external view returns(Token memory);
+ function getPair(address _token) external view returns(Pair memory);
 }
 
 contract TokenBridge is Ownable {
@@ -33,7 +33,7 @@ contract TokenBridge is Ownable {
     uint8 public max_requests_per_requestor;
 
     address public antelope_bridge_evm_address;
-    ITokenBridgeRegister public token_register;
+    IPairBridgeRegister public pair_register;
 
     struct Request {
         uint id;
@@ -44,14 +44,14 @@ contract TokenBridge is Ownable {
         string receiver;
     }
 
-    Request[] requests;
+    Request[] public requests;
 
     mapping(address => uint) request_counts;
     uint id_count;
 
-    constructor(address _antelope_bridge_evm_address, ITokenBridgeRegister _token_register,  uint8 _max_requests_per_requestor, uint _fee) {
+    constructor(address _antelope_bridge_evm_address, IPairBridgeRegister _pair_register,  uint8 _max_requests_per_requestor, uint _fee) {
         fee = _fee;
-        token_register = _token_register;
+        pair_register = _pair_register;
         max_requests_per_requestor = _max_requests_per_requestor;
         antelope_bridge_evm_address = _antelope_bridge_evm_address;
         id_count = 0;
@@ -74,8 +74,8 @@ contract TokenBridge is Ownable {
         max_requests_per_requestor = _max_requests_per_requestor;
      }
 
-     function setTokenRegister(ITokenBridgeRegister _token_register) external onlyOwner {
-        token_register = _token_register;
+     function setPairRegister(IPairBridgeRegister _pair_register) external onlyOwner {
+        pair_register = _pair_register;
      }
 
      function setAntelopeBridgeEvmAddress(address _antelope_bridge_evm_address) external onlyOwner {
@@ -112,8 +112,8 @@ contract TokenBridge is Ownable {
 
      // FROM ANTELOPE BRIDGE
      function bridgeTo(IERC20Bridgeable token, address receiver, uint amount) external onlyAntelopeBridge {
-        ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
-        require(tokenData.active, "Bridging is paused for token.");
+        IPairBridgeRegister.Pair memory pairData = pair_register.getPair(address(token));
+        require(pairData.active, "Bridging is paused for pair");
         try token.mint(receiver, amount) {
             emit BridgeFromAntelopeSucceeded(receiver, address(token), amount);
         } catch {
@@ -128,8 +128,8 @@ contract TokenBridge is Ownable {
         require(request_counts[msg.sender] < max_requests_per_requestor, "Maximum requests reached. Please wait for them to complete before trying again.");
 
         // Check token is registered
-        ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
-        require(tokenData.active, "Bridging is paused for token");
+        IPairBridgeRegister.Pair memory pairData = pair_register.getPair(address(token));
+        require(pairData.active, "Bridging is paused for token");
 
         // Check allowance is ok
         uint remaining = token.allowance(msg.sender, address(this));
