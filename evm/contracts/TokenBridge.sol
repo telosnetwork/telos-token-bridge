@@ -87,8 +87,8 @@ contract TokenBridge is Ownable {
      function requestSuccessful(uint id) external onlyAntelopeBridge {
         for(uint i = 0; i < requests.length; i++){
             if(requests[i].id == id){
-                _removeRequest(i);
                 emit BridgeToAntelopeSucceeded(requests[i].sender, requests[i].token, requests[i].amount, requests[i].receiver);
+                _removeRequest(i);
             }
         }
      }

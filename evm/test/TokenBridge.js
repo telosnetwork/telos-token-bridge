@@ -83,6 +83,46 @@ describe("TokenBridge Contract", function () {
             }
             await expect(evm_bridge.connect(user).bridge(token.address, ONE_TLOS, "exrsrv.tf", {value: HALF_TLOS})).to.be.reverted;
         });
+        it("Should let antelope bridge set request as successful" , async function () {
+            // Add a registered token
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            // Add tokens to user (fake bridging from Antelope)
+            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, user.address, ONE_TLOS)).to.emit('Transfer');
+            // User tries to bridge
+            await expect(token.connect(user).approve(evm_bridge.address, ONE_TLOS)).to.not.be.reverted;
+            expect(await evm_bridge.connect(user).bridge(token.address, HALF_TLOS, "exrsrv.tf", {value: HALF_TLOS})).to.emit('BridgeToAntelopeRequested');
+            expect(await evm_bridge.connect(antelope_bridge).requestSuccessful(0)).to.emit('BridgeToAntelopeSucceeded');
+        });
+        it("Should not let a random address set request as successful" , async function () {
+            // Add a registered token
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            // Add tokens to user (fake bridging from Antelope)
+            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, user.address, ONE_TLOS)).to.emit('Transfer');
+            // User tries to bridge
+            await expect(token.connect(user).approve(evm_bridge.address, ONE_TLOS)).to.not.be.reverted;
+            expect(await evm_bridge.connect(user).bridge(token.address, HALF_TLOS, "exrsrv.tf", {value: HALF_TLOS})).to.emit('BridgeToAntelopeRequested');
+            await expect(evm_bridge.connect(user).requestSuccessful(0)).to.be.revertedWith('Only the Antelope bridge EVM address can trigger this method !');
+        });
+        it("Should let antelope bridge remove a request" , async function () {
+            // Add a registered token
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            // Add tokens to user (fake bridging from Antelope)
+            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, user.address, ONE_TLOS)).to.emit('Transfer');
+            // User tries to bridge
+            await expect(token.connect(user).approve(evm_bridge.address, ONE_TLOS)).to.not.be.reverted;
+            expect(await evm_bridge.connect(user).bridge(token.address, HALF_TLOS, "exrsrv.tf", {value: HALF_TLOS})).to.emit('BridgeToAntelopeRequested');
+            await expect(evm_bridge.connect(antelope_bridge).removeRequest(0)).to.not.be.reverted;
+        });
+        it("Should not let a random address remove a request" , async function () {
+            // Add a registered token
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            // Add tokens to user (fake bridging from Antelope)
+            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, user.address, ONE_TLOS)).to.emit('Transfer');
+            // User tries to bridge
+            await expect(token.connect(user).approve(evm_bridge.address, ONE_TLOS)).to.not.be.reverted;
+            expect(await evm_bridge.connect(user).bridge(token.address, HALF_TLOS, "exrsrv.tf", {value: HALF_TLOS})).to.emit('BridgeToAntelopeRequested');
+            await expect(evm_bridge.connect(user).removeRequest(0)).to.be.revertedWith('Only the Antelope bridge EVM address can trigger this method !');
+        });
     });
     describe(":: Brige from Antelope", async function () {
         it("Should let antelope bridge mint & send a registered ERC20Bridgeable token" , async function () {
