@@ -16,7 +16,7 @@ This is the EVM part of our Token Bridge repository
 
 #### Events
 
-- `event  Registered(address indexed token, string antelope_account, string symbol, string name);`
+- `event  RegistrationRequested(address indexed token, string antelope_account, string symbol, string name);`
 - `event  Approved(address indexed token, string symbol, string name);`
 - `event  Paused(address indexed token, string symbol, string name);`
 - `event  Unpaused(address indexed token, string symbol, string name);`
