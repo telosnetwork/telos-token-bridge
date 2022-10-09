@@ -11,11 +11,12 @@ const ANTELOPE_ACCOUNT_NAME = "mytoken";
 const ANTELOPE_DECIMALS = 14;
 
 describe("TokenBridgeRegister Contract", function () {
-    let antelope_bridge, evm_bridge, user, token, register;
+    let antelope_bridge, evm_bridge, user, token, token2, register;
     beforeEach(async () => {
         [antelope_bridge, user] = await ethers.getSigners();
         let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
         token = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
+        token2 = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME + " 2", TOKEN_SYMBOL + "2");
         let TokenRegister = await ethers.getContractFactory("TokenBridgeRegister");
         register = await TokenRegister.deploy(antelope_bridge.address, MAX_REQUESTS, REQUEST_VALIDITY);
         let EVMBridge = await ethers.getContractFactory("TokenBridge");
@@ -53,7 +54,8 @@ describe("TokenBridgeRegister Contract", function () {
         });
         it("Should not allow two registration requests for same token" , async function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.be.revertedWith('Token already being registered');
+            await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME + "2")).to.be.revertedWith('Token already being registered');
+            await expect(register.requestRegistration(token2.address, ANTELOPE_ACCOUNT_NAME)).to.be.revertedWith('Token already being registered');
         });
         it("Should remove request when new request after " + REQUEST_VALIDITY + " seconds" , async function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');

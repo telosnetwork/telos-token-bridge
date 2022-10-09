@@ -116,8 +116,8 @@ contract TokenBridgeRegister is Ownable {
         require(msg.sender == owner, "Sender must be token owner");
 
         // Check exists
-        require(_tokenExists(address(token)) == false, "Token already registered");
-        require(_tokenRegistrationExists(address(token)) == false, "Token already being registered");
+        require(_tokenExists(address(token), keccak256(abi.encodePacked(antelope_account_name))) == false, "Token already registered");
+        require(_tokenRegistrationExists(address(token), keccak256(abi.encodePacked(antelope_account_name))) == false, "Token already being registered");
 
         // TODO: NEED TO CHECK ERC20 BRIDGEABLE COMPLIANCE, etc...
 
@@ -227,17 +227,17 @@ contract TokenBridgeRegister is Ownable {
     }
 
     // UTILS   ================================================================ >
-    function _tokenExists(address token) internal view returns (bool) {
+    function _tokenExists(address token, bytes32 antelope_token) internal view returns (bool) {
         for(uint i = 0; i < tokens.length;i++){
-            if(token == tokens[i].evm_address){
+            if(token == tokens[i].evm_address || keccak256(abi.encodePacked(requests[i].antelope_account_name)) == antelope_token){
                 return true;
             }
         }
         return false;
     }
-    function _tokenRegistrationExists(address token) internal view returns (bool) {
+    function _tokenRegistrationExists(address token, bytes32 antelope_token) internal view returns (bool) {
         for(uint i = 0; i < requests.length;i++){
-            if(token == requests[i].evm_address){
+            if(token == requests[i].evm_address || keccak256(abi.encodePacked(requests[i].antelope_account_name)) == antelope_token){
                 return true;
             }
         }
