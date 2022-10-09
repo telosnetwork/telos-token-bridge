@@ -31,6 +31,8 @@ This is the token pairs register for the bridge. Token owners can request regist
 
 #### Public functions
 
+Get the pair data from the EVM token address or from the Antelope token account name
+
 - `function getPair(address evm_token_address)`
 - `function getPairByAntelopeAccount(string antelope_account)`
 
