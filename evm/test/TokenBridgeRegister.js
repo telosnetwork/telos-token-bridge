@@ -52,6 +52,7 @@ describe("TokenBridgeRegister Contract", function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
             await expect(register.requests(0)).to.not.be.reverted;
         });
+        // What happens if someone adds tokens they do not own ??? Maybe need to add antelope account on antelope sign only....
         it("Should not allow two registration requests for same token" , async function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
             await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME + "2")).to.be.revertedWith('Token already being registered');
@@ -104,7 +105,11 @@ describe("TokenBridgeRegister Contract", function () {
         });
     });
     describe(":: Token CRUD", async function () {
+        it("Should let owner add a token" , async function () {
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenRegistered");
+        });
         it("Should not let other addresses add a token" , async function () {
+            await expect(register.connect(user).addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.be.revertedWith('Ownable: caller is not the owner');
         });
         it("Should let owner remove a token" , async function () {
         });

@@ -14,12 +14,14 @@ interface IERC20Bridgeable {
 }
 
 contract TokenBridgeRegister is Ownable {
-    event  RegistrationRequested(address requestor, address indexed token, string antelope_name,  string symbol, string name);
-    event  RegistrationRequestSigned(uint request, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
-    event  RegistrationRequestApproved(address indexed token, string antelope_account, string antelope_name, string symbol, string name);
-    event  Paused(address indexed token, string symbol, string name);
-    event  Unpaused(address indexed token, string symbol, string name);
-    event  Deleted(address indexed token, string symbol, string name);
+    event  RegistrationRequested(uint request_id, address requestor, address indexed token, string antelope_name,  string symbol, string name);
+    event  RegistrationRequestSigned(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
+    event  RegistrationRequestApproved(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
+    event  RegistrationRequestDeleted(uint request_id, address indexed token, string antelope_account);
+    event  TokenPaused(uint token_id, address indexed token, string symbol, string name, string antelope_account, string antelope_name);
+    event  TokenAdded(uint token_id, address indexed token, string symbol, string name, string antelope_account, string antelope_name);
+    event  TokenUnpaused(uint token_id, address indexed token, string symbol, string name, string antelope_account, string antelope_name);
+    event  TokenDeleted(uint token_id, address indexed token, string symbol, string name, string antelope_account, string antelope_name);
 
     uint request_id;
     uint token_id;
@@ -128,9 +130,9 @@ contract TokenBridgeRegister is Ownable {
 
         // Add token request
         requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, antelope_account_name, "", symbol, name ));
+        emit RegistrationRequested(request_id, msg.sender, address(token), antelope_account_name, symbol, name);
         request_id++;
         request_counts[msg.sender]++;
-        emit RegistrationRequested(msg.sender, address(token), antelope_account_name, symbol, name);
         return (request_id - 1); // Owner needs that ID to sign from Antelope next
     }
 
@@ -161,6 +163,7 @@ contract TokenBridgeRegister is Ownable {
 
     function _removeRegistrationRequest (uint i) internal {
        address sender = requests[i].sender;
+       emit RegistrationRequestDeleted(requests[i].id, requests[i].evm_address,  requests[i].antelope_account_name);
        requests[i] = requests[requests.length-1];
        requests.pop();
        request_counts[sender]--;
@@ -184,6 +187,7 @@ contract TokenBridgeRegister is Ownable {
             if(requests[i].id == id){
                require(requests[i].antelope_decimals > 0, "Request not signed by Antelope");
                tokens.push(Token(true, token_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_account_name, requests[i].antelope_name, requests[i].symbol, requests[i].name));
+               emit TokenAdded(token_id, requests[i].evm_address, requests[i].symbol, requests[i].name, requests[i].antelope_account_name, requests[i].antelope_name);
                requests[i] = requests[requests.length - 1];
                requests.pop();
                token_id++;
@@ -196,31 +200,36 @@ contract TokenBridgeRegister is Ownable {
     // TOKEN   ================================================================ >
 
     // Let owner, the prods.evm EVM address, add tokens
-    function addToken () external onlyOwner {
-        // TODO: Let prods.evm add a token
+    function addToken (IERC20Bridgeable evm_token, uint8 antelope_decimals, string calldata antelope_account_name, string calldata antelope_name) external onlyOwner returns(uint) {
+        uint8 evm_decimals = evm_token.decimals();
+        string memory symbol = evm_token.symbol();
+        string memory name = evm_token.name();
+        tokens.push(Token(true, token_id, address(evm_token), evm_decimals, antelope_decimals, antelope_account_name, antelope_name, symbol, name));
+        emit TokenAdded(token_id, address(evm_token), symbol, name, antelope_account_name, antelope_name);
         token_id++;
+        return (token_id - 1);
     }
 
     // Let owner, the prods.evm EVM address, un-pause tokens
     function unpauseToken (uint id) external onlyOwner {
         Token storage token = _getToken(id);
         token.active = true;
-        emit Unpaused(token.evm_address, token.symbol, token.name);
+        emit TokenUnpaused(id, token.evm_address, token.symbol, token.name, token.antelope_account_name, token.antelope_name);
     }
 
     // Let owner, the prods.evm EVM address, pause tokens
     function pauseToken (uint id) external onlyOwner {
        Token storage token = _getToken(id);
        token.active = false;
-       emit Paused(token.evm_address, token.symbol, token.name);
+       emit TokenPaused(id, token.evm_address, token.symbol, token.name, token.antelope_account_name, token.antelope_name);
     }
 
     function removeToken (uint id) external onlyOwner {
         for(uint i; i < tokens.length;i++){
             if(tokens[i].id == id){
+               emit TokenDeleted(tokens[i].id, tokens[i].evm_address, tokens[i].symbol, tokens[i].name, tokens[i].antelope_account_name, tokens[i].antelope_name);
                tokens[i] = tokens[tokens.length];
                tokens.pop();
-               emit Deleted(tokens[i].evm_address, tokens[i].symbol, tokens[i].name);
             }
         }
         revert('Token not found');
