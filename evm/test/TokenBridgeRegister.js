@@ -89,6 +89,11 @@ describe("TokenBridgeRegister Contract", function () {
             expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
             expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
         });
+        it("Should emit a TokenAdded event on approved request" , async function () {
+            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('TokenAdded');
+        });
         it("Should not let an unsigned request be approved" , async function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
             await expect(register.connect(antelope_bridge).approveRegistrationRequest(0)).to.be.revertedWith('Request not signed by Antelope');
@@ -106,7 +111,7 @@ describe("TokenBridgeRegister Contract", function () {
     });
     describe(":: Token CRUD", async function () {
         it("Should let owner add a token" , async function () {
-            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenRegistered");
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
         });
         it("Should not let other addresses add a token" , async function () {
             await expect(register.connect(user).addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.be.revertedWith('Ownable: caller is not the owner');
@@ -116,8 +121,12 @@ describe("TokenBridgeRegister Contract", function () {
         it("Should not let other addresses remove a token" , async function () {
         });
         it("Should let owner pause a token" , async function () {
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            expect(await register.pauseToken(0)).to.emit("TokenPaused");
         });
-        it("Should let token owner pause a token" , async function () {
+        it("Should not let random addresses pause a token" , async function () {
+            expect(await register.addToken(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("TokenAdded");
+            await expect(register.connect(user).pauseToken(0)).to.be.revertedWith("Ownable: caller is not the owner");
         });
         it("Should not let other addresses pause a token" , async function () {
         });
