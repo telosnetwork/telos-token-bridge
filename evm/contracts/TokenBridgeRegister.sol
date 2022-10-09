@@ -37,7 +37,6 @@ contract TokenBridgeRegister is Ownable {
     }
 
     struct Request {
-        bool antelope_signed;
         uint id;
         address sender;
         address evm_address;
@@ -95,10 +94,11 @@ contract TokenBridgeRegister is Ownable {
         revert('Token not found');
     }
 
-     // MAIN   ================================================================ >
+    // REQUEST   ================================================================ >
 
     // Let token owners ask for registration of their tokens
-    function requestRegistration (IERC20Bridgeable token, string calldata antelope_account_name) external {
+    // returns the uint request id
+    function requestRegistration (IERC20Bridgeable token, string calldata antelope_account_name) external returns(uint) {
         require(request_counts[msg.sender] >= max_requests_per_requestor, "Maximum request reached, please wait until approved or delete one");
 
         _removeOutdatedRegistrationRequests(); // Remove outdated registrations as new one are added...
@@ -111,45 +111,61 @@ contract TokenBridgeRegister is Ownable {
         string memory name = token.name();
 
         // Add token request
-        requests.push(Request(false, request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, antelope_account_name, symbol, name ));
+        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, antelope_account_name, symbol, name ));
         request_id++;
         request_counts[msg.sender]++;
         emit RegistrationRequested(address(token), antelope_account_name, symbol, name);
+        return (request_id - 1); // Owner needs that ID to sign from Antelope next
     }
 
-    function signRequest (uint id) external onlyBridge {
-        // TODO: Let Antelope bridge sign request (on verification of the eosio.token token)
+    // Let Antelope bridge sign request (after verification of the eosio.token token there)
+    function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name) external onlyBridge {
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
-               requests[i].antelope_signed = true;
+               requests[i].antelope_account_name = _antelope_account_name;
+               requests[i].antelope_decimals = _antelope_decimals;
             }
         }
         revert('Request not found');
     }
 
-    function _removeRegistrationRequest (uint id) internal {
+    // Let owner or registration sender delete requests
+    function removeRegistrationRequest (uint id) external {
+
+    }
+
+    function _removeRegistrationRequest (uint i) internal {
+       address sender = requests[i].sender;
+       requests[i] = requests[requests.length];
+       requests.pop();
+       request_counts[sender]--;
+    }
+
+    function _removeOutdatedRegistrationRequests () internal {
         for(uint i = 0;i<requests.length;i++){
-            if(requests[i].id == id){
-               address sender = requests[i].sender;
-               requests[i] = requests[requests.length];
-               requests.pop();
-               request_counts[sender]--;
+            if(requests[i].timestamp < block.timestamp - request_validity_seconds){
+                _removeRegistrationRequest(i);
             }
         }
     }
 
     // Let owner, the prods.evm EVM address, approve tokens, adding them to the registry
-    function approveToken (uint id) external onlyOwner {
+    // returns the uint token id
+    function approveRegistrationRequest (uint id) external onlyOwner returns(uint) {
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
-               require(requests[i].antelope_signed, "Request not signed by Antelope");
+               require(requests[i].antelope_decimals > 0, "Request not signed by Antelope");
                requests[i] = requests[requests.length];
                requests.pop();
                tokens.push(Token(true, token_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_account_name, requests[i].symbol, requests[i].name));
                token_id++;
+               return (token_id - 1);
             }
         }
+        revert('Request not found');
     }
+
+    // TOKEN   ================================================================ >
 
     // Let owner, the prods.evm EVM address, add tokens
     function addToken () external onlyOwner {
@@ -169,14 +185,6 @@ contract TokenBridgeRegister is Ownable {
        Token storage token = _getToken(id);
        token.active = false;
        emit Paused(token.evm_address, token.symbol, token.name);
-    }
-
-    function _removeOutdatedRegistrationRequests () internal {
-        for(uint i = 0;i<requests.length;i++){
-            if(requests[i].timestamp < block.timestamp - request_validity_seconds){
-
-            }
-        }
     }
 
     function removeToken (uint id) external onlyOwner {
