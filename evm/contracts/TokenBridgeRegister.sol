@@ -153,6 +153,7 @@ contract TokenBridgeRegister is Ownable {
     function removeRegistrationRequest (uint id) external {
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
+                require(msg.sender == owner() || msg.sender == requests[i].sender, 'Only the requestor or contract owner can invoke this method');
                 _removeRegistrationRequest(i);
             }
         }
@@ -182,9 +183,9 @@ contract TokenBridgeRegister is Ownable {
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                require(requests[i].antelope_decimals > 0, "Request not signed by Antelope");
-               requests[i] = requests[requests.length];
-               requests.pop();
                tokens.push(Token(true, token_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_account_name, requests[i].antelope_name, requests[i].symbol, requests[i].name));
+               requests[i] = requests[requests.length - 1];
+               requests.pop();
                token_id++;
                return (token_id - 1);
             }

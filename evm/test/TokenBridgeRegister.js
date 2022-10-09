@@ -73,13 +73,30 @@ describe("TokenBridgeRegister Contract", function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
             await expect(register.connect(user).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.be.revertedWith('Only the Antelope bridge EVM address can trigger this method !');
         });
-        it("Should let the antelope bridge remove a request" , async function () {
+        it("Should let the requestor or owner remove a request" , async function () {
+            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.removeRegistrationRequest(0)).to.emit('RegistrationRequestRemoved');
         });
         it("Should not let a random address remove a request" , async function () {
+            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            await expect(register.connect(user).removeRegistrationRequest(0)).to.be.revertedWith('Only the requestor or contract owner can invoke this method');
         });
-        it("Should let the antelope bridge approve a request" , async function () {
+        it("Should let the owner approve a request" , async function () {
+            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
+        });
+        it("Should not let an unsigned request be approved" , async function () {
+            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            await expect(register.connect(antelope_bridge).approveRegistrationRequest(0)).to.be.revertedWith('Request not signed by Antelope');
         });
         it("Should not let a random address approve a request" , async function () {
+            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            await expect(register.connect(user).approveRegistrationRequest(0)).to.be.revertedWith('Ownable: caller is not the owner');
+        });
+        it("Should not allow a registration request if token is registered" , async function () {
+            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
         });
     });
     describe(":: Token CRUD", async function () {
