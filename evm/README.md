@@ -24,10 +24,10 @@ This is the token pairs register for the bridge. Token owners can request regist
 - `event  RegistrationRequestSigned(uint request_id, address indexed token, string antelope_account, string symbol);`
 - `event  RegistrationRequestApproved(uint request_id, address indexed token, string antelope_account, string symbol);`
 - `event  RegistrationRequestDeleted(uint request_id, address indexed token, string antelope_account);`
-- `event  TokenPaused(uint token_id, address indexed token, string symbol, string name, string antelope_account);`
-- `event  TokenAdded(uint token_id, address indexed token, string symbol, string antelope_account);`
-- `event  TokenUnpaused(uint token_id, address indexed token, string symbol);`
-- `event  TokenDeleted(uint token_id, address indexed token, string symbol);`
+- `event  PairPaused(uint pair_id, address indexed evm_token, string symbol, string name, string antelope_account);`
+- `event  PairAdded(uint pair_id, address indexed evm_token, string symbol, string antelope_account);`
+- `event  PairUnpaused(uint pair_id, address indexed evm_token, string symbol);`
+- `event  PairDeleted(uint pair_id, address indexed evm_token, string symbol);`
 
 ### ERC20Bridgeable.sol
 
