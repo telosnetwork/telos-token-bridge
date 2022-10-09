@@ -6,7 +6,7 @@ This is the EVM part of our Token Bridge repository
 
 ### TokenBridge.sol
 
-The main EVM contract for the token bridge
+This is the main EVM contract for the token bridge.
 
 #### Events
 
