@@ -29,11 +29,11 @@ contract TokenBridge is Ownable {
     event  BridgeToAntelopeSucceeded(address indexed sender, address indexed token, uint amount, string recipient);
     event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);
 
-    uint fee;
-    uint8 max_requests;
+    uint public fee;
+    uint8 public max_requests_per_requestor;
 
-    address bridge_evm_address;
-    ITokenBridgeRegister token_register;
+    address public antelope_bridge_evm_address;
+    ITokenBridgeRegister public token_register;
 
     struct Request {
         uint id;
@@ -49,17 +49,17 @@ contract TokenBridge is Ownable {
     mapping(address => uint) request_counts;
     uint id_count;
 
-    constructor(address _bridge_evm_address, ITokenBridgeRegister _token_register,  uint8 _max_requests, uint _fee) {
+    constructor(address _antelope_bridge_evm_address, ITokenBridgeRegister _token_register,  uint8 _max_requests_per_requestor, uint _fee) {
         fee = _fee;
         token_register = _token_register;
-        max_requests = _max_requests;
-        bridge_evm_address = _bridge_evm_address;
+        max_requests_per_requestor = _max_requests_per_requestor;
+        antelope_bridge_evm_address = _antelope_bridge_evm_address;
         id_count = 0;
     }
 
-    modifier onlyBridge() {
+    modifier onlyAntelopeBridge() {
         require(
-            bridge_evm_address == msg.sender,
+            antelope_bridge_evm_address == msg.sender,
             "Only the Antelope bridge EVM address can trigger this method !"
         );
         _;
@@ -70,17 +70,21 @@ contract TokenBridge is Ownable {
         fee = _fee;
      }
 
-     function setMaxRequests(uint8 _max_requests) external onlyOwner {
-        max_requests = _max_requests;
+     function setMaxRequestsPerRequestor(uint8 _max_requests_per_requestor) external onlyOwner {
+        max_requests_per_requestor = _max_requests_per_requestor;
      }
 
-     function setBridgeEvmAddress(address _bridge_evm_address) external onlyOwner {
-        bridge_evm_address = _bridge_evm_address;
+     function setTokenRegister(ITokenBridgeRegister _token_register) external onlyOwner {
+        token_register = _token_register;
+     }
+
+     function setAntelopeBridgeEvmAddress(address _antelope_bridge_evm_address) external onlyOwner {
+        antelope_bridge_evm_address = _antelope_bridge_evm_address;
      }
 
      // MAIN   ================================================================ >
      // SUCCESS ANTELOPE CALLBACK
-     function requestSuccessful(uint id) external onlyBridge {
+     function requestSuccessful(uint id) external onlyAntelopeBridge {
         for(uint i = 0; i < requests.length; i++){
             if(requests[i].id == id){
                 _removeRequest(i);
@@ -96,7 +100,7 @@ contract TokenBridge is Ownable {
         request_counts[sender]--;
      }
 
-     function removeRequest(uint id) external onlyBridge returns (bool) {
+     function removeRequest(uint id) external onlyAntelopeBridge returns (bool) {
         for(uint i = 0; i < requests.length; i++){
             if(requests[i].id == id){
                 _removeRequest(i);
@@ -107,7 +111,7 @@ contract TokenBridge is Ownable {
      }
 
      // FROM ANTELOPE BRIDGE
-     function bridgeTo(IERC20Bridgeable token, address receiver, uint amount) external onlyBridge {
+     function bridgeTo(IERC20Bridgeable token, address receiver, uint amount) external onlyAntelopeBridge {
         ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
         require(tokenData.active, "Bridging is paused for token.");
         try token.mint(receiver, amount) {
@@ -120,7 +124,7 @@ contract TokenBridge is Ownable {
      // TO ANTELOPE
      function bridge(IERC20Bridgeable token, uint amount, string calldata receiver) external payable {
         require(msg.value >= fee, "Needs TLOS fee passed");
-        require(request_counts[msg.sender] < max_requests, "Maximum requests reached. Please wait for them to complete before trying again.");
+        require(request_counts[msg.sender] < max_requests_per_requestor, "Maximum requests reached. Please wait for them to complete before trying again.");
 
         // Check token is registered
         ITokenBridgeRegister.Token memory tokenData = token_register.getToken(address(token));
