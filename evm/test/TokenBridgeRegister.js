@@ -14,13 +14,13 @@ describe("TokenBridgeRegister Contract", function () {
     let antelope_bridge, evm_bridge, user, token, token2, register;
     beforeEach(async () => {
         [antelope_bridge, user] = await ethers.getSigners();
-        let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
-        token = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
-        token2 = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME + " 2", TOKEN_SYMBOL + "2");
         let TokenRegister = await ethers.getContractFactory("TokenBridgeRegister");
         register = await TokenRegister.deploy(antelope_bridge.address, MAX_REQUESTS, REQUEST_VALIDITY);
         let EVMBridge = await ethers.getContractFactory("TokenBridge");
         evm_bridge = await EVMBridge.deploy(antelope_bridge.address, register.address, MAX_REQUESTS, HALF_TLOS);
+        let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
+        token = await ERC20Bridgeable.deploy(evm_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
+        token2 = await ERC20Bridgeable.deploy(evm_bridge.address,  TOKEN_NAME + " 2", TOKEN_SYMBOL + "2");
     })
     describe(":: Deployment", async function () {
         it("Should have correct max requests" , async function () {

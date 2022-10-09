@@ -117,6 +117,7 @@ contract TokenBridge is Ownable {
         try token.mint(receiver, amount) {
             emit BridgeFromAntelopeSucceeded(receiver, address(token), amount);
         } catch {
+            // Todo: refund Antelope token ??
             revert('Token cannot be minted');
         }
      }
