@@ -10,6 +10,6 @@ Refer to the following Telos docs relative to the bridge for help using it in yo
 - [Bridge Antelope >> EVM](https://doc.telos.net)
 - [Bridge EVM >> Antelope](https://doc.telos.net)
 
-Or our [Telos help guide](https://help.telos.net) to simply bridge your tokens
+Or our [Telos help guide](https://help.telos.net) to simply bridge your tokens manually
 
 _To create a bridgeable erc20 token that you can register on the bridge, paired with an Antelope eosio.token token, refer to our [ERC20Bridgeable](https://github.com/telosnetwork/erc20-bridgeable) repository._
