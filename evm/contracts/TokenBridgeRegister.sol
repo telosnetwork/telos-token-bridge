@@ -23,7 +23,7 @@ contract TokenBridgeRegister is Ownable {
     uint token_id;
     uint public request_validity_seconds;
     uint8 public max_requests_per_requestor;
-    address bridge_evm_address;
+    address public antelope_bridge_evm_address;
 
     struct Token {
         bool active;
@@ -52,17 +52,17 @@ contract TokenBridgeRegister is Ownable {
     Request[] public requests;
     mapping(address => uint) public request_counts;
 
-    constructor(address _bridge_evm_address, uint8 _max_requests_per_requestor, uint _request_validity_seconds) {
+    constructor(address _antelope_bridge_evm_address, uint8 _max_requests_per_requestor, uint _request_validity_seconds) {
         token_id = 0;
         request_id = 0;
-        bridge_evm_address = _bridge_evm_address;
+        antelope_bridge_evm_address = _antelope_bridge_evm_address;
         max_requests_per_requestor = _max_requests_per_requestor;
         request_validity_seconds = _request_validity_seconds;
     }
 
     modifier onlyBridge() {
         require(
-            bridge_evm_address == msg.sender,
+            antelope_bridge_evm_address == msg.sender,
             "Only the Antelope bridge EVM address can trigger this method !"
         );
         _;
@@ -74,6 +74,9 @@ contract TokenBridgeRegister is Ownable {
     }
     function setRequestValiditySeconds(uint _request_validity_seconds) external onlyOwner {
         request_validity_seconds = _request_validity_seconds;
+    }
+    function setAntelopeBridgeEvmAddress(address _antelope_bridge_evm_address) external onlyOwner {
+        antelope_bridge_evm_address = _antelope_bridge_evm_address;
     }
 
     // GETTERS

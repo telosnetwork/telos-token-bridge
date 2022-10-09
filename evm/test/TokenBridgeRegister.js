@@ -20,7 +20,29 @@ describe("TokenBridgeRegister Contract", function () {
         evm_bridge = await EVMBridge.deploy(antelope_bridge.address, register.address, MAX_REQUESTS, HALF_TLOS);
     })
     describe(":: Deployment", async function () {
-
+        it("Should have correct max requests" , async function () {
+            expect(await register.max_requests_per_requestor()).to.equal(MAX_REQUESTS);
+        });
+        it("Should have correct request validity" , async function () {
+            expect(await register.request_validity_seconds()).to.equal(REQUEST_VALIDITY);
+        });
+        it("Should have correct antelope bridge evm address" , async function () {
+            expect(await register.antelope_bridge_evm_address()).to.equal(antelope_bridge.address);
+        });
+    });
+    describe(":: Setters", async function () {
+        it("Should let owner set max requests" , async function () {
+            await expect(register.setMaxRequestsPerRequestor(MAX_REQUESTS + 10)).to.not.be.reverted;
+            expect(await register.max_requests_per_requestor()).to.equal(MAX_REQUESTS + 10);
+        });
+        it("Should let owner set request validity" , async function () {
+            await expect(register.setRequestValiditySeconds(REQUEST_VALIDITY + 10)).to.not.be.reverted;
+            expect(await register.request_validity_seconds()).to.equal(REQUEST_VALIDITY + 10);
+        });
+        it("Should let owner set antelope bridge evm address" , async function () {
+            await expect(register.setAntelopeBridgeEvmAddress(user.address)).to.not.be.reverted;
+            expect(await register.antelope_bridge_evm_address()).to.equal(user.address);
+        });
     });
     describe(":: Token CRUD", async function () {
         it("Should let owner add a token" , async function () {
@@ -36,6 +58,10 @@ describe("TokenBridgeRegister Contract", function () {
         it("Should let token owner pause a token" , async function () {
         });
         it("Should not let other addresses pause a token" , async function () {
+        });
+    });
+    describe(":: Getters", async function () {
+        it("Should return an existing token by address" , async function () {
         });
     });
 });
