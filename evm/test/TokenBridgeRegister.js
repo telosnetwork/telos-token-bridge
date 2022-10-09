@@ -6,6 +6,7 @@ const HUNDRED_TLOS = ethers.utils.parseEther('200.0');
 const TOKEN_NAME = "My Bridgeable Token";
 const TOKEN_SYMBOL = "MBT";
 const MAX_REQUESTS = 10;
+const REQUEST_VALIDITY = 30; // 30s
 
 describe("TokenBridgeRegister Contract", function () {
     let antelope_bridge, evm_bridge, user, erc20bridgeable, register;
@@ -14,7 +15,7 @@ describe("TokenBridgeRegister Contract", function () {
         let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
         erc20bridgeable = await ERC20Bridgeable.deploy(antelope_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
         let TokenRegister = await ethers.getContractFactory("TokenBridgeRegister");
-        register = await TokenRegister.deploy(MAX_REQUESTS);
+        register = await TokenRegister.deploy(antelope_bridge.address, MAX_REQUESTS, REQUEST_VALIDITY);
         let EVMBridge = await ethers.getContractFactory("TokenBridge");
         evm_bridge = await EVMBridge.deploy(antelope_bridge.address, register.address, MAX_REQUESTS, HALF_TLOS);
     })
