@@ -1,6 +1,7 @@
 // @author Thomas Cuvillier
-// @contract rngorcbrdg
-// @version v0.1.0
+// @organization Telos Foundation
+// @contract token.brdg
+// @version v1.0
 
 #include <vector>
 
@@ -18,11 +19,11 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 // TELOS EVM
-#include <token_bridge_constants.hpp>
+#include <constants.hpp>
 #include <evm_util.hpp>
 #include <datastream.hpp>
 #include <evm_bridge_tables.hpp>
-#include <token_bridge_tables.hpp>
+#include <tables.hpp>
 
 #define EVM_SYSTEM_CONTRACT name("eosio.evm")
 
@@ -56,7 +57,7 @@ namespace evm_bridge
 
             ACTION reqnotify();
             ACTION bridge(name token_account, uint256_t amount);
-            ACTION tokenbridge::registerToken(name user, name token_account, name token_symbol, eosio::checksum160 evm_address);
+            ACTION registerToken(name user, name token_account, name token_symbol, eosio::checksum160 evm_address);
 
             //======================= Testing action =============================
             #if (TESTING == true)
