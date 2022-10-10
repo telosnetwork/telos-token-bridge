@@ -1,3 +1,8 @@
+// @author Thomas Cuvillier
+// @organization Telos Foundation
+// @contract token.brdg
+// @version v1.0
+
 #include "../include/token.brdg.hpp";
 
 namespace evm_bridge
@@ -74,9 +79,12 @@ namespace evm_bridge
     };
 
     //======================== Token Bridge actions ========================
-    // Bridge to EVM
-    ACTION tokenbridge::bridge()
+    // Trustless bridge to EVM
+    ACTION tokenbridge::bridge(name token_account, uint256_t amount)
     {
+        // TODO: check the token has an active pair
+        // TODO: lock the tokens
+        // TODO: prepare EVM Bridge call
         // Send it back to EVM using eosio.evm
         action(
             permission_level {get_self(), "active"_n},
@@ -86,12 +94,36 @@ namespace evm_bridge
         ).send();
     };
 
+    // Trustless bridge from EVM
+    ACTION tokenbridge::reqnotify()
+    {
+        // TODO: parse EVM Bridge request, unlock & send tokens to receiver
+        // TODO: setup success callback call
+        // Send success callback call back to EVM using eosio.evm
+        action(
+           permission_level {get_self(), "active"_n},
+           EVM_SYSTEM_CONTRACT,
+           "raw"_n,
+           std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, request.gas + BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
+        ).send();
     };
 
+
     // Verify token & sign EVM registration request
-    ACTION tokenbridge::registerToken()
+    ACTION tokenbridge::registerToken(name user, name token_account, name token_symbol, eosio::checksum160 evm_address)
     {
-        // Send it back to EVM using eosio.evm
+        // Check auth
+        auth(user)
+
+        // TODO:  Check the token ownership is user by reading token data on its stats table w/ scope token_symbol
+
+        // TODO:  Check token doesn't already exist in EVM Register by reading EVM storage
+
+        // TODO:  Check token is compatible (TBD)
+
+        // TODO:  Prepare signRegistrationRequest call on EVM
+
+        // Send signRegistrationRequest call to EVM using eosio.evm
         action(
             permission_level {get_self(), "active"_n},
             EVM_SYSTEM_CONTRACT,
