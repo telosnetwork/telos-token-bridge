@@ -144,13 +144,13 @@ describe("PairBridgeRegister Contract", function () {
         });
     });
     describe(":: Getters", async function () {
-        it("Should return an existing registered token by Antelope account name" , async function () {
+        it("Should return an existing registered Antelope token's pair" , async function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
             expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
             expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
             await expect(register.getPairByAntelopeAccount(ANTELOPE_ACCOUNT_NAME)).to.not.be.reverted;
         });
-        it("Should return an existing registered token by EVM address" , async function () {
+        it("Should return an existing registered EVM token's pair" , async function () {
             expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
             expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
             expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
