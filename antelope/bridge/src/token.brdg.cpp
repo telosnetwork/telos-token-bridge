@@ -117,7 +117,7 @@ namespace evm_bridge
 
 
     // Verify token & sign EVM registration request
-    ACTION tokenbridge::registerToken(uint256_t evm_request, name token_account, name token_symbol, eosio::checksum160 evm_address)
+    ACTION tokenbridge::signregreq(uint256_t evm_request, name token_account, name token_symbol, eosio::checksum160 evm_address)
     {
         // Check auth
         auth(token_account);
@@ -126,34 +126,37 @@ namespace evm_bridge
         auto conf = config_bridge.get();
 
         // Define EVM Account State table with EVM register contract scope
-        account_state_table account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
-        auto account_states_bykey = account_states.get_index<"bykey"_n>();
+        account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
+        auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
 
         // Get array slot to find Token tokens[] array length
         auto token_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_TOKEN_INDEX));
-        auto token_array_length = account_states_bykey.find(storage_key);
+        auto token_array_length = register_account_states_bykey.find(storage_key);
         auto token_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
-
         // Get array slot to find Request requests[] array length
         auto request_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_TOKEN_INDEX));
-        auto request_array_length = account_states_bykey.find(storage_key);
+        auto request_array_length = register_account_states_bykey.find(storage_key);
         auto request_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
 
-        // TODO: Check token doesn't already exist in EVM Register
-        bool exists = false;
+        // Check token doesn't already exist in EVM Register
+        // Get each member of the Token tokens[] array's antelope_account and compare
         for(uint256_t i = 0; i < token_array_length; i++){
-            // Get each member of that Token tokens[] array's antelope_account and compare
+            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(register_array_slot, 4, 8, position));
+            if(account_name == token_account){
+                check(false, "The token is already registered");
+            }
         }
+        // Get each member of the Request requests[] array's antelope_account and compare.
         for(uint256_t i = 0; i < request_array_length; i++){
-            // Get each member of that Request requests[] array's antelope_account and compare.
-        }
-        if(exists){
-            check(false, "The token is already registered or awaiting approval")
+            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(register_array_slot, 4, 8, position));
+            if(account_name == token_account){
+                check(false, "The token is already awaiting approval");
+            }
         }
 
         // TODO: Get token infos (decimals, ...)
         uint256_t decimals = 14;
-        // TODO:  Check token is compatible (TBD)
+        // TODO:  Check token is compatible (TBD)(???)
 
         // Prepare address
         auto evm_contract = conf.evm_register_address.extract_as_byte_array();
