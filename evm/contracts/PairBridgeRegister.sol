@@ -127,18 +127,18 @@ contract PairBridgeRegister is Ownable {
         address owner = token.owner();
         require(msg.sender == owner, "Sender must be token owner");
 
-        // Check exists
+        // Check pair for this token does not already exist
         require(_tokenPairExists(address(token)) == false, "Token has pair already registered");
         require(_tokenPairRegistrationExists(address(token)) == false, "Token has pair already being registered");
 
         // TODO: NEED TO CHECK ERC20 BRIDGEABLE COMPLIANCE, etc...
 
-        // Get token data
+        // Get the token data
         uint8 evm_decimals = token.decimals();
         string memory symbol = token.symbol();
         string memory name = token.name();
 
-        // Add token request
+        // Add a token pair registration request
         requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, "", "", "", symbol, name ));
         emit RegistrationRequested(request_id, msg.sender, address(token), symbol, name);
         request_id++;

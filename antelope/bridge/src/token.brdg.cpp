@@ -85,7 +85,7 @@ namespace evm_bridge
 
     //======================== Token Bridge actions ========================
     // Trustless bridge to EVM
-    ACTION tokenbridge::bridge(name caller, name token_account, uint256_t amount)
+    ACTION tokenbridge::bridge(name caller, name token_account, uint256_t amount, string receiver)
     {
         // Check auth
         auth(caller);
@@ -121,8 +121,14 @@ namespace evm_bridge
 
         // Prepare EVM function signature & arguments
         std::vector<uint8_t> data;
+        auto fnsig = toBin(EVM_BRIDGE_SIGNATURE);
+        data.insert(data.end(), fnsig.begin(), fnsig.end());
+        // TODO: insert token EVM address
+        // TODO: insert receiver EVM address
+        auto amount_bs = intx::to_byte_string(amount);
+        data.insert(to.end(),  amount_bs.begin(), amount_bs.end());
 
-        // call bridgeTo() on EVM using eosio.evm
+        // call TokenBridge.bridgeTo(address token, address receiver, uint amount) on EVM using eosio.evm
         action(
             permission_level {get_self(), "active"_n},
             EVM_SYSTEM_CONTRACT,
@@ -134,7 +140,6 @@ namespace evm_bridge
     // Trustless bridge from EVM
     ACTION tokenbridge::reqnotify()
     {
-
         // Open config singleton
         auto conf = config_bridge.get();
 
@@ -151,17 +156,25 @@ namespace evm_bridge
         auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
         std::vector<uint8_t> to;
         to.insert(to.end(), evm_contract.begin(), evm_contract.end());
+        auto fnsig = toBin(EVM_SUCCESS_CALLBACK_SIGNATURE);
 
         for(uint256_t i = 0; i < request_array_length; i++){
-            // TODO: parse EVM Bridge request, unlock & send tokens to receiver
-            // TODO: setup success callback call so request get deleted on EVM
-            // Send success callback call back to EVM using eosio.evm
-            action(
-               permission_level {get_self(), "active"_n},
-               EVM_SYSTEM_CONTRACT,
-               "raw"_n,
-               std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, request.gas + BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
-            ).send();
+            // TODO: parse EVM Bridge request
+            // TODO:: unlock & send tokens to receiver
+            if(success){
+                // TODO: setup success callback call so request get deleted on EVM
+                std::vector<uint8_t> data;
+                data.insert(data.end(), fnsig.begin(), fnsig.end());
+                // TODO: insert the request id
+
+                // Send success callback call back to EVM using eosio.evm
+                action(
+                   permission_level {get_self(), "active"_n},
+                   EVM_SYSTEM_CONTRACT,
+                   "raw"_n,
+                   std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, request.gas + BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
+                ).send();
+            }
         }
     };
 
