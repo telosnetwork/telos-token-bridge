@@ -9,7 +9,7 @@ namespace evm_bridge
 {
     //======================== Admin actions ==========================
     // Initialize the contract
-    ACTION tokenbridge::init(eosio::checksum160 evm_contract, string version, name admin){
+    ACTION tokenbridge::init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, string version, name admin){
         // Authenticate
         require_auth(get_self());
 
@@ -27,9 +27,11 @@ namespace evm_bridge
         // Get the scope
         account_table accounts(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value);
         auto accounts_byaddress = accounts.get_index<"byaddress"_n>();
-        auto account = accounts_byaddress.require_find(pad160(evm_contract), "EVM bridge contract not found in eosio.evm accounts");
+        auto account_bridge = accounts_byaddress.require_find(pad160(bridge_address), "EVM Bridge not found in eosio.evm accounts");
+        auto account_register = accounts_byaddress.require_find(pad160(register_address), "EVM Register not found in eosio.evm accounts");
 
-        stored.evm_contract_scope = account->index;
+        stored.evm_bridge_scope = account_bridge->index;
+        stored.evm_register_scope = account_register->index;
 
         config_bridge.set(stored, get_self());
     };
@@ -46,20 +48,23 @@ namespace evm_bridge
         config_bridge.set(stored, get_self());
     };
 
-    // Set the bridge evm address
-    ACTION tokenbridge::setevmctc(eosio::checksum160 new_contract){
+    // Set the  evm bridge & evm register addresses
+    ACTION tokenbridge::setevmctc(eosio::checksum160 bridge_address, eosio::checksum160 register_address){
         // Authenticate
         require_auth(config_bridge.get().admin);
 
-        // Get the scope for accountstates
+        // Get the relevant accounts for eosio.evm accountstates table
         account_table accounts(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value);
         auto accounts_byaddress = accounts.get_index<"byaddress"_n>();
-        auto account = accounts_byaddress.require_find(pad160(new_contract), "EVM bridge contract not found in eosio.evm accounts");
+        auto account_bridge = accounts_byaddress.require_find(pad160(bridge_address), "EVM Bridge not found in eosio.evm accounts");
+        auto account_register = accounts_byaddress.require_find(pad160(register_address), "EVM Register not found in eosio.evm accounts");
 
         // Save
         auto stored = config_bridge.get();
-        stored.evm_contract = new_contract;
-        stored.evm_contract_scope = account->index;
+        stored.evm_bridge_address = bridge_address;
+        stored.evm_bridge_scope = account_bridge->index;
+        stored.evm_register_address = register_address;
+        stored.evm_register_scope = account_register->index;
 
         config_bridge.set(stored, get_self());
     };
@@ -80,10 +85,12 @@ namespace evm_bridge
 
     //======================== Token Bridge actions ========================
     // Trustless bridge to EVM
-    ACTION tokenbridge::bridge(name token_account, uint256_t amount)
+    ACTION tokenbridge::bridge(name caller, name token_account, uint256_t amount)
     {
+        // Check auth
+        auth(caller);
         // TODO: check the token has an active pair
-        // TODO: lock the tokens
+        // TODO: lock the tokens of user
         // TODO: prepare EVM Bridge call
         // Send it back to EVM using eosio.evm
         action(
@@ -110,17 +117,42 @@ namespace evm_bridge
 
 
     // Verify token & sign EVM registration request
-    ACTION tokenbridge::registerToken(name user, name token_account, name token_symbol, eosio::checksum160 evm_address)
+    ACTION tokenbridge::registerToken(uint256_t evm_request, name token_account, name token_symbol, eosio::checksum160 evm_address)
     {
         // Check auth
-        auth(user)
+        auth(token_account);
 
-        // TODO:  Check the token ownership is user by reading token data on its stats table w/ scope token_symbol
+        // Open config singleton
+        auto conf = config_bridge.get();
 
-        // TODO:  Check token doesn't already exist in EVM Register by reading EVM storage
+        // Define EVM Account State table with EVM register contract scope
+        account_state_table account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
+        auto account_states_bykey = account_states.get_index<"bykey"_n>();
 
+        // Get array slot to find Token tokens[] array length
+        auto token_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_TOKEN_INDEX));
+        auto token_array_length = account_states_bykey.find(storage_key);
+        auto token_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
+
+        // Get array slot to find Request requests[] array length
+        auto request_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_TOKEN_INDEX));
+        auto request_array_length = account_states_bykey.find(storage_key);
+        auto request_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
+
+        // TODO: Check token doesn't already exist in EVM Register
+        bool exists = false;
+        for(uint256_t i = 0; i < token_array_length; i++){
+            // Get each member of that Token tokens[] array's antelope_account and compare
+        }
+        for(uint256_t i = 0; i < request_array_length; i++){
+            // Get each member of that Request requests[] array's antelope_account and compare.
+        }
+        if(exists){
+            check(false, "The token is already registered or awaiting approval")
+        }
+
+        // TODO: Get token infos (decimals, ...)
         // TODO:  Check token is compatible (TBD)
-
         // TODO:  Prepare signRegistrationRequest call on EVM
 
         // Send signRegistrationRequest call to EVM using eosio.evm

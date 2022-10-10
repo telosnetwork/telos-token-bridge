@@ -1,6 +1,7 @@
 // @author Thomas Cuvillier
-// @contract rngorcbrdg
-// @version v0.1.0
+// @organization Telos Foundation
+// @contract token.brdg
+// @version v1.0
 
 #include <vector>
 
@@ -40,6 +41,7 @@ namespace evm_bridge
             ~tokenbridge() {};
 
             //======================== Admin actions ========================
+
             // intialize the contract
             ACTION init(eosio::checksum160 evm_contract, string version, name admin);
 
@@ -47,7 +49,7 @@ namespace evm_bridge
             ACTION setversion(string new_version);
 
             //set the bridge evm address
-            ACTION setevmctc(eosio::checksum160 bridge_address, eosio::checksum160 register_address);
+            ACTION setevmctc(eosio::checksum160 new_contract);
 
             //set new contract admin
             ACTION setadmin(name new_admin);
@@ -56,9 +58,10 @@ namespace evm_bridge
 
             ACTION reqnotify();
             ACTION bridge(name token_account, uint256_t amount);
-            ACTION registerToken(uint256_t evm_request, name token_account, name token_symbol, eosio::checksum160 evm_address);
+            ACTION tokenbridge::registerToken(name user, name token_account, name token_symbol, eosio::checksum160 evm_address);
 
             //======================= Testing action =============================
+
             #if (TESTING == true)
                 ACTION clearall()
                 {
