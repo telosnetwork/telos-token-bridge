@@ -18,8 +18,11 @@ namespace evm_bridge
   // Constant chain ID determined at COMPILE time
   static constexpr size_t CURRENT_CHAIN_ID = ChainIDs::TELOS_TESTNET;
   static constexpr eosio::name ESCROW = eosio::name("escrow.brdg");
+  static constexpr eosio::name EVM_SYSTEM_CONTRACT = eosio::name("eosio.evm");
   static constexpr std::string EVM_SUCCESS_CALLBACK_SIGNATURE = "eb5bb2f6";
   static constexpr std::string EVM_BRIDGE_SIGNATURE = "eb5bb2f6";
   static constexpr std::string EVM_SIGN_REGISTRATION_SIGNATURE = "eb5bb2f6";
-  static constexpr uint STORAGE_INDEX = 2;
+  static constexpr uint STORAGE_BRIDGE_REQUEST_INDEX = 2;
+  static constexpr uint STORAGE_REGISTER_REQUEST_INDEX = 2;
+  static constexpr uint STORAGE_REGISTER_TOKEN_INDEX = 2;
 }

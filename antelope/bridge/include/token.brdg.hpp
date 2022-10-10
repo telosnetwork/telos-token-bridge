@@ -22,7 +22,7 @@
 #include <constants.hpp>
 #include <evm_util.hpp>
 #include <datastream.hpp>
-#include <evm_bridge_tables.hpp>
+#include <evm_tables.hpp>
 #include <tables.hpp>
 
 #define EVM_SYSTEM_CONTRACT name("eosio.evm")
@@ -42,15 +42,15 @@ namespace evm_bridge
 
             //======================== Admin actions ========================
             // intialize the contract
-            ACTION init(eosio::checksum160 evm_contract, string version, name admin);
+            ACTION init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, string version, name admin);
 
-            //set the contract version
+            // set the contract version
             ACTION setversion(string new_version);
 
-            //set the bridge evm address
+            // set the bridge & register evm addresses
             ACTION setevmctc(eosio::checksum160 bridge_address, eosio::checksum160 register_address);
 
-            //set new contract admin
+            // set new contract admin
             ACTION setadmin(name new_admin);
 
             //======================== Token bridge actions ========================

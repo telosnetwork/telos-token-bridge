@@ -49,64 +49,63 @@ describe("PairBridgeRegister Contract", function () {
     });
     describe(":: Registration Request", async function () {
         it("Should let a token owner add a registration request" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.requests(0)).to.not.be.reverted;
         });
         // What happens if someone adds token they do not own ??? Maybe need to add antelope account on antelope sign only....
         it("Should not allow two registration requests for same token" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME + "2")).to.be.revertedWith('Pair already being registered');
-            await expect(register.requestRegistration(token2.address, ANTELOPE_ACCOUNT_NAME)).to.be.revertedWith('Pair already being registered');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
+            await expect(register.requestRegistration(token.address)).to.be.revertedWith('Token has pair already being registered');
         });
         it("Should remove request when new request after " + REQUEST_VALIDITY + " seconds" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.requests(0)).to.not.be.reverted;
             await ethers.provider.send('evm_increaseTime', [31]);
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.requests(1)).to.be.reverted;
         });
         it("Should not let a random address add a registration request" , async function () {
-            await expect(register.connect(user).requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.be.revertedWith('Sender must be token owner');
+            await expect(register.connect(user).requestRegistration(token.address)).to.be.revertedWith('Sender must be token owner');
         });
         it("Should let the antelope bridge sign a request" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME, TOKEN_SYMBOL)).to.emit('RegistrationRequestSigned');
         });
         it("Should not let a random address sign a request" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            await expect(register.connect(user).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.be.revertedWith('Only the Antelope bridge EVM address can trigger this method !');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
+            await expect(register.connect(user).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME, TOKEN_SYMBOL)).to.be.revertedWith('Only the Antelope bridge EVM address can trigger this method !');
         });
         it("Should let the requestor or owner remove a request" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             expect(await register.removeRegistrationRequest(0)).to.emit('RegistrationRequestRemoved');
         });
         it("Should not let a random address remove a request" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.connect(user).removeRegistrationRequest(0)).to.be.revertedWith('Only the requestor or contract owner can invoke this method');
         });
         it("Should let the owner approve a request" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME, TOKEN_SYMBOL)).to.emit('RegistrationRequestSigned');
             expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
         });
         it("Should emit a PairAdded event on approved request" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME, TOKEN_SYMBOL)).to.emit('RegistrationRequestSigned');
             expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('PairAdded');
         });
         it("Should not let an unsigned request be approved" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.connect(antelope_bridge).approveRegistrationRequest(0)).to.be.revertedWith('Request not signed by Antelope');
         });
         it("Should not let a random address approve a request" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.connect(user).approveRegistrationRequest(0)).to.be.revertedWith('Ownable: caller is not the owner');
         });
         it("Should not allow a registration request if token is registered" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME, TOKEN_SYMBOL)).to.emit('RegistrationRequestSigned');
             expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
-            await expect(register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.be.revertedWith('Pair already registered');
+            await expect(register.requestRegistration(token.address)).to.be.revertedWith('Token has pair already registered');
         });
     });
     describe(":: Pair CRUD", async function () {
@@ -145,14 +144,14 @@ describe("PairBridgeRegister Contract", function () {
     });
     describe(":: Getters", async function () {
         it("Should return an existing registered Antelope token's pair" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME, TOKEN_SYMBOL)).to.emit('RegistrationRequestSigned');
             expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
             await expect(register.getPairByAntelopeAccount(ANTELOPE_ACCOUNT_NAME)).to.not.be.reverted;
         });
         it("Should return an existing registered EVM token's pair" , async function () {
-            expect(await register.requestRegistration(token.address, ANTELOPE_ACCOUNT_NAME)).to.emit('RegistrationRequested');
-            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit('RegistrationRequestSigned');
+            expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
+            expect(await register.connect(antelope_bridge).signRegistrationRequest(0, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME, TOKEN_SYMBOL)).to.emit('RegistrationRequestSigned');
             expect(await register.connect(antelope_bridge).approveRegistrationRequest(0)).to.emit('RegistrationRequestApproved');
             await expect(register.getPair(token.address)).to.not.be.reverted;
         });

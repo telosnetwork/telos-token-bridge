@@ -14,7 +14,7 @@ interface IERC20Bridgeable {
 }
 
 contract PairBridgeRegister is Ownable {
-    event  RegistrationRequested(uint request_id, address requestor, address indexed token, string antelope_name,  string symbol, string name);
+    event  RegistrationRequested(uint request_id, address requestor, address indexed token, string symbol, string name);
     event  RegistrationRequestSigned(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  RegistrationRequestApproved(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  RegistrationRequestDeleted(uint request_id, address indexed token, string antelope_account);
@@ -50,6 +50,7 @@ contract PairBridgeRegister is Ownable {
         uint timestamp;
         string antelope_account_name;
         string antelope_name;
+        string antelope_symbol;
         string symbol;
         string name;
     }
@@ -116,7 +117,7 @@ contract PairBridgeRegister is Ownable {
 
     // Let token owners ask for registration of their pairs
     // returns the uint request id
-    function requestRegistration (IERC20Bridgeable token, string calldata antelope_account_name) external returns(uint) {
+    function requestRegistration (IERC20Bridgeable token) external returns(uint) {
 
         require(request_counts[msg.sender] < max_requests_per_requestor, "Maximum request reached, please wait until approved or delete one");
 
@@ -127,8 +128,8 @@ contract PairBridgeRegister is Ownable {
         require(msg.sender == owner, "Sender must be token owner");
 
         // Check exists
-        require(_tokenExists(address(token), keccak256(abi.encodePacked(antelope_account_name))) == false, "Pair already registered");
-        require(_tokenRegistrationExists(address(token), keccak256(abi.encodePacked(antelope_account_name))) == false, "Pair already being registered");
+        require(_tokenPairExists(address(token)) == false, "Token has pair already registered");
+        require(_tokenPairRegistrationExists(address(token)) == false, "Token has pair already being registered");
 
         // TODO: NEED TO CHECK ERC20 BRIDGEABLE COMPLIANCE, etc...
 
@@ -138,19 +139,21 @@ contract PairBridgeRegister is Ownable {
         string memory name = token.name();
 
         // Add token request
-        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, antelope_account_name, "", symbol, name ));
-        emit RegistrationRequested(request_id, msg.sender, address(token), antelope_account_name, symbol, name);
+        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, "", "", "", symbol, name ));
+        emit RegistrationRequested(request_id, msg.sender, address(token), symbol, name);
         request_id++;
         request_counts[msg.sender]++;
         return (request_id - 1); // Owner needs that ID to sign from Antelope next
     }
 
     // Let Antelope bridge sign request (after verification of the eosio.token token there)
-    function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_name) external onlyBridge {
+    function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_name, string calldata _antelope_symbol) external onlyBridge {
         _removeOutdatedRegistrationRequests();
+        require(_antelopeTokenPairExists(_antelope_account_name) == false, "Antelope token already in a registered pair");
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                requests[i].antelope_account_name = _antelope_account_name;
+               requests[i].antelope_symbol = _antelope_symbol;
                requests[i].antelope_name = _antelope_name;
                requests[i].antelope_decimals = _antelope_decimals;
                emit RegistrationRequestSigned(requests[i].id, requests[i].evm_address,  _antelope_account_name, _antelope_name, requests[i].symbol, requests[i].name);
@@ -246,17 +249,31 @@ contract PairBridgeRegister is Ownable {
     }
 
     // UTILS   ================================================================ >
-    function _tokenExists(address token, bytes32 antelope_token) internal view returns (bool) {
+    function _antelopeTokenPairExists(string calldata account_name) internal view returns (bool) {
+        bytes32 account =  keccak256(abi.encodePacked(account_name));
         for(uint i = 0; i < pairs.length;i++){
-            if(token == pairs[i].evm_address || keccak256(abi.encodePacked(requests[i].antelope_account_name)) == antelope_token){
+            if(account == keccak256(abi.encodePacked(pairs[i].antelope_account_name)) ){
+                return true;
+            }
+        }
+        for(uint k = 0; k < requests.length;k++){
+            if(account == keccak256(abi.encodePacked(requests[k].antelope_account_name)) ){
                 return true;
             }
         }
         return false;
     }
-    function _tokenRegistrationExists(address token, bytes32 antelope_token) internal view returns (bool) {
+    function _tokenPairExists(address token) internal view returns (bool) {
+        for(uint i = 0; i < pairs.length;i++){
+            if(token == pairs[i].evm_address){
+                return true;
+            }
+        }
+        return false;
+    }
+    function _tokenPairRegistrationExists(address token) internal view returns (bool) {
         for(uint i = 0; i < requests.length;i++){
-            if(token == requests[i].evm_address || keccak256(abi.encodePacked(requests[i].antelope_account_name)) == antelope_token){
+            if(token == requests[i].evm_address){
                 return true;
             }
         }

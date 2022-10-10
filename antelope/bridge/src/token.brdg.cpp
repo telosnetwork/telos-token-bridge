@@ -89,30 +89,80 @@ namespace evm_bridge
     {
         // Check auth
         auth(caller);
+
+        // Open config singleton
+        auto conf = config_bridge.get();
+
         // TODO: check the token has an active pair
+        // Define EVM Account State table with EVM register contract scope
+        account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
+        auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
+
+        // Get array slot to find Token tokens[] array length
+        auto token_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_TOKEN_INDEX));
+        auto token_array_length = register_account_states_bykey.find(storage_key);
+        auto token_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
+
+        // Get each member of the Token tokens[] array's antelope_account and compare
+        for(uint256_t i = 0; i < token_array_length; i++){
+            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(register_array_slot, 4, 8, position));
+            if(account_name == token_account){
+                const auto token_active = register_account_states_bykey.find(getArrayMemberSlot(register_array_slot, 4, 8, position));
+                check(token_active, "The related token pair is paused");
+            }
+        }
+
         // TODO: lock the tokens of user
-        // TODO: prepare EVM Bridge call
-        // Send it back to EVM using eosio.evm
+
+        // Prepare address for EVM Bridge call
+        auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
+        std::vector<uint8_t> to;
+        to.insert(to.end(),  evm_contract.begin(), evm_contract.end());
+
+        // Prepare EVM function signature & arguments
+        std::vector<uint8_t> data;
+
+        // call bridgeTo() on EVM using eosio.evm
         action(
             permission_level {get_self(), "active"_n},
             EVM_SYSTEM_CONTRACT,
             "raw"_n,
-            std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, request.gas + BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
+            std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
         ).send();
     };
 
     // Trustless bridge from EVM
     ACTION tokenbridge::reqnotify()
     {
-        // TODO: parse EVM Bridge request, unlock & send tokens to receiver
-        // TODO: setup success callback call
-        // Send success callback call back to EVM using eosio.evm
-        action(
-           permission_level {get_self(), "active"_n},
-           EVM_SYSTEM_CONTRACT,
-           "raw"_n,
-           std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, request.gas + BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
-        ).send();
+
+        // Open config singleton
+        auto conf = config_bridge.get();
+
+        // Define EVM Account State table with EVM bridge contract scope
+        account_state_table bridge_account_states(EVM_SYSTEM_CONTRACT, conf.evm_bridge_scope);
+        auto bridge_account_states_bykey = bridge_account_states.get_index<"bykey"_n>();
+
+        // Get array slot to find Request requests[] array length
+        auto request_storage_key = toChecksum256(uint256_t(STORAGE_BRIDGE_REQUEST_INDEX));
+        auto request_array_length = register_account_states_bykey.find(storage_key);
+        auto request_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
+
+        // Prepare address for callback
+        auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
+        std::vector<uint8_t> to;
+        to.insert(to.end(), evm_contract.begin(), evm_contract.end());
+
+        for(uint256_t i = 0; i < request_array_length; i++){
+            // TODO: parse EVM Bridge request, unlock & send tokens to receiver
+            // TODO: setup success callback call so request get deleted on EVM
+            // Send success callback call back to EVM using eosio.evm
+            action(
+               permission_level {get_self(), "active"_n},
+               EVM_SYSTEM_CONTRACT,
+               "raw"_n,
+               std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, request.gas + BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
+            ).send();
+        }
     };
 
 
@@ -172,7 +222,7 @@ namespace evm_bridge
         data.insert(data.end(), fnsig.begin(), fnsig.end());
         data.insert(data.end(), request_id_bs.begin(), request_id_bs.end());
         data.insert(data.end(), decimals_bs.begin(), decimals_bs.end());
-        // TODO: Add antelope symbol & account name
+        // TODO: Convert & add antelope symbol & account name
 
         // Send signRegistrationRequest call to EVM using eosio.evm
         action(
