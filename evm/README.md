@@ -14,6 +14,12 @@ This is the main EVM contract for the token bridge.
 - `event  BridgeToAntelopeSucceeded(address indexed sender, address indexed token, uint amount, string recipient);`
 - `event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);`
 
+#### Public functions
+
+- `function bridge(address token, uint amount, string receiver)` _note that you need ERC20 allowance for the bridge address_
+- `function fee()`
+- `function max_requests_per_requestor()`
+
 ### PairBridgeRegister.sol
 
 This is the token pairs register for the bridge. Token owners can request registration and sign the request from Antelope, the prods.evm owner evm address can invoke CRUD operations on the pairs & approve requests.
