@@ -56,7 +56,7 @@ namespace evm_bridge
 
             ACTION reqnotify();
             ACTION bridge(name token_account, uint256_t amount);
-            ACTION registerToken(uint256_t evm_request, name token_account, name token_symbol, eosio::checksum160 evm_address);
+            ACTION tokenbridge::registerToken(name user, name token_account, name token_symbol, eosio::checksum160 evm_address);
 
             //======================= Testing action =============================
             #if (TESTING == true)
