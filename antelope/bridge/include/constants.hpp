@@ -22,7 +22,7 @@ namespace evm_bridge
   static constexpr std::string EVM_SUCCESS_CALLBACK_SIGNATURE = "eb5bb2f6";
   static constexpr std::string EVM_BRIDGE_SIGNATURE = "eb5bb2f6";
   static constexpr std::string EVM_SIGN_REGISTRATION_SIGNATURE = "eb5bb2f6";
-  static constexpr uint STORAGE_BRIDGE_REQUEST_INDEX = 2;
+  static constexpr uint STORAGE_BRIDGE_REQUEST_INDEX = 3;
   static constexpr uint STORAGE_REGISTER_REQUEST_INDEX = 2;
-  static constexpr uint STORAGE_REGISTER_TOKEN_INDEX = 2;
+  static constexpr uint STORAGE_REGISTER_PAIR_INDEX = 2;
 }

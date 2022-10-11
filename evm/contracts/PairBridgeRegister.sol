@@ -25,9 +25,6 @@ contract PairBridgeRegister is Ownable {
 
     uint request_id;
     uint pair_id;
-    uint public request_validity_seconds;
-    uint8 public max_requests_per_requestor;
-    address public antelope_bridge_evm_address;
 
     struct Pair {
         bool active;
@@ -58,6 +55,9 @@ contract PairBridgeRegister is Ownable {
     Pair[] public pairs;
     Request[] public requests;
     mapping(address => uint) public request_counts;
+    uint public request_validity_seconds;
+    uint8 public max_requests_per_requestor;
+    address public antelope_bridge_evm_address;
 
     constructor(address _antelope_bridge_evm_address, uint8 _max_requests_per_requestor, uint _request_validity_seconds) {
         pair_id = 0;
@@ -65,6 +65,10 @@ contract PairBridgeRegister is Ownable {
         antelope_bridge_evm_address = _antelope_bridge_evm_address;
         max_requests_per_requestor = _max_requests_per_requestor;
         request_validity_seconds = _request_validity_seconds;
+    }
+
+    fallback() external payable {
+        payable(antelope_bridge_evm_address).transfer(msg.value);
     }
 
     modifier onlyBridge() {

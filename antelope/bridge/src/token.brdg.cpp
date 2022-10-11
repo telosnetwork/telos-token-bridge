@@ -85,7 +85,8 @@ namespace evm_bridge
 
     //======================== Token Bridge actions ========================
     // Trustless bridge to EVM
-    ACTION tokenbridge::bridge(name caller, name token_account, uint256_t amount, string receiver)
+    [[eosio::on_notify("eosio.token::transfer")]]
+    ACTION void tokenbridge::bridge(name from, name to, assert quantity, std::string memo)
     {
         // Check auth
         auth(caller);
@@ -93,26 +94,30 @@ namespace evm_bridge
         // Open config singleton
         auto conf = config_bridge.get();
 
-        // TODO: check the token has an active pair
         // Define EVM Account State table with EVM register contract scope
         account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
         auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
 
-        // Get array slot to find Token tokens[] array length
-        auto token_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_TOKEN_INDEX));
-        auto token_array_length = register_account_states_bykey.find(storage_key);
-        auto token_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
+        // Get array slot to find Pair pairs[] array length
+        auto pair_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_PAIR_INDEX));
+        auto pair_array_length = register_account_states_bykey.require_find(storage_key, "No pairs found");
+        auto pair_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
 
-        // Get each member of the Token tokens[] array's antelope_account and compare
-        for(uint256_t i = 0; i < token_array_length; i++){
-            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(register_array_slot, 4, 8, position));
+        // Get each member of the Pair pairs[] array's antelope_account and compare to get the EVM address
+        uint256_t pair_evm_address = 0
+        for(uint256_t i = 0; i < pair_array_length->value; i=i+1){
+            const uint256_t position = pair_array_length->value - i;
+            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(register_array_slot, 5, 8, position));
+            // TODO: convert account_name
             if(account_name == token_account){
-                const auto token_active = register_account_states_bykey.find(getArrayMemberSlot(register_array_slot, 4, 8, position));
-                check(token_active, "The related token pair is paused");
+                const auto pair_active = register_account_states_bykey.find(getArrayMemberSlot(register_array_slot, 0, 8, position));
+                // TODO: convert pair_active
+                check(pair_active, "The related token pair is paused");
             }
         }
+        check(pair_evm_address, "this eosio.token has no pair registered on this bridge");
 
-        // TODO: lock the tokens of user
+        // TODO: lock the eosio.token of user (??? >>> escrow utility ?)
 
         // Prepare address for EVM Bridge call
         auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
@@ -149,7 +154,7 @@ namespace evm_bridge
 
         // Get array slot to find Request requests[] array length
         auto request_storage_key = toChecksum256(uint256_t(STORAGE_BRIDGE_REQUEST_INDEX));
-        auto request_array_length = register_account_states_bykey.find(storage_key);
+        auto request_array_length = register_account_states_bykey.require_find(storage_key, "No requests found");
         auto request_array_slot = checksum256ToValue(keccak_256(storage_key.extract_as_byte_array()));
 
         // Prepare address for callback
@@ -158,9 +163,18 @@ namespace evm_bridge
         to.insert(to.end(), evm_contract.begin(), evm_contract.end());
         auto fnsig = toBin(EVM_SUCCESS_CALLBACK_SIGNATURE);
 
-        for(uint256_t i = 0; i < request_array_length; i++){
+        for(uint256_t i = 0; i < request_array_length->value; i++){
+            const uint256_t position = request_array_length->value - i;
             // TODO: parse EVM Bridge request
+            const auto request_id = register_account_states_bykey.find(getArrayMemberSlot(bridge_account_states, 0, 8, position));
+            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(bridge_account_states, 2, 8, position));
+            const auto recipient = register_account_states_bykey.find(getArrayMemberSlot(bridge_account_states, 3, 8, position));
+            const auto memo = register_account_states_bykey.find(getArrayMemberSlot(bridge_account_states, 4, 8, position));
+
+            // TODO: check valid
+
             // TODO:: unlock & send tokens to receiver
+
             if(success){
                 // TODO: setup success callback call so request get deleted on EVM
                 std::vector<uint8_t> data;

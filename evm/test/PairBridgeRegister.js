@@ -6,6 +6,7 @@ const HUNDRED_TLOS = ethers.utils.parseEther('200.0');
 const TOKEN_NAME = "My Bridgeable Token";
 const TOKEN_SYMBOL = "MBT";
 const MAX_REQUESTS = 10;
+const MIN_BRIDGE_AMOUNT = ethers.utils.parseEther("1.0");
 const REQUEST_VALIDITY = 30; // 30s
 const ANTELOPE_ACCOUNT_NAME = "mytoken";
 const ANTELOPE_DECIMALS = 14;
@@ -17,7 +18,7 @@ describe("PairBridgeRegister Contract", function () {
         let PairRegister = await ethers.getContractFactory("PairBridgeRegister");
         register = await PairRegister.deploy(antelope_bridge.address, MAX_REQUESTS, REQUEST_VALIDITY);
         let EVMBridge = await ethers.getContractFactory("TokenBridge");
-        evm_bridge = await EVMBridge.deploy(antelope_bridge.address, register.address, MAX_REQUESTS, HALF_TLOS);
+        evm_bridge = await EVMBridge.deploy(antelope_bridge.address, register.address, MAX_REQUESTS, HALF_TLOS, MIN_BRIDGE_AMOUNT);
         let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
         token = await ERC20Bridgeable.deploy(evm_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
         token2 = await ERC20Bridgeable.deploy(evm_bridge.address,  TOKEN_NAME + " 2", TOKEN_SYMBOL + "2");
