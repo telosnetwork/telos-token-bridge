@@ -12,7 +12,7 @@ Refer to the following Telos docs relative to the bridge for help using it in yo
 
 Or our [Telos help guide](https://help.telos.net) to simply bridge your tokens manually on our [Telos Wallet](https://wallet.telos.net) frontend
 
-_To create a bridgeable erc20 token that you can register on the bridge, paired with an Antelope eosio.token token, refer to our [ERC20Bridgeable](https://github.com/telosnetwork/erc20-bridgeable) repository._
+_To create a bridgeable erc20 token that you can register on the bridge and pairX with an Antelope eosio.token token, refer to our [ERC20Bridgeable](https://github.com/telosnetwork/erc20-bridgeable) repository._
 
 ## How it works
 
