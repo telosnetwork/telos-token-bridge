@@ -47,11 +47,11 @@ The community / BPs can approve that request via an Antelope multisig sending a 
 
 ### 4. Bridge from EVM to Antelope
 
+You can use the `TokenBridge` contract `bridge(address token, uint amount, string receiver, string memo)` function to bridge a registered ERC20Bridgeable token its paired token on Antelope ! You will need to pass in the fee that you can query with the `fee()` function.
+
 ```
   const { ethers } = require("ethers");
 ```
-
-You can use the `TokenBridge` contract `bridge(address token, uint amount, string receiver, string memo)` function to bridge a registered ERC20Bridgeable token its paired token on Antelope ! You will need to pass in the fee that you can query with the `fee()` function.
 
 You will find a breakdown below of how it works:
 
