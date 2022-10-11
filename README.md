@@ -16,7 +16,7 @@ _To create a bridgeable erc20 token that you can register on the bridge, paired 
 
 ## How it works
 
-On Telos, the EVM runs inside one eosio.evm smart contract on our Antelope native chain. This means any Antelope smart contract can read EVM storage and call EVM functions, making it the most trustless token bridge there can be ! We do not use liquidity pools or other solutions that bring complexity as well as their own problems, everything happens directly inside the smart contracts and only the native Telos BPs & community can modify its settings and pause/unpause tokens. 
+On Telos, the EVM runs inside one eosio.evm smart contract on our Antelope native chain. This means any Antelope smart contract can read EVM storage and call EVM functions, making a 100% trustless token bridge possible ! We do not use liquidity pools or other solutions that bring complexity as well as their own problems, everything happens directly inside the smart contracts and only the native Telos BPs & community can modify its settings and pause/unpause tokens. 
 
 ### 1. Pair registration
 
