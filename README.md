@@ -24,7 +24,7 @@ ERC20Bridgeable token owners can use our PairRegister to request a pair registra
 
 ### 2. Bridge from Antelope to EVM
 
-![antelope2evm](https://user-images.githubusercontent.com/5913758/195116443-01ef9250-3165-465d-92a8-a7457469f571.jpg)
+![antelope2evmb](https://user-images.githubusercontent.com/5913758/195126884-1cc95bcf-d318-465c-8d1f-6ba603e37126.jpg)
 
 ### 3. Bridge from EVM to Antelope
 
