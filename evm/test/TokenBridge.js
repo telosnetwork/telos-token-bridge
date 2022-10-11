@@ -126,25 +126,18 @@ describe("TokenBridge Contract", function () {
         });
         // WIP ============================================================================================================== >
         it("Should create a refund if token could not be minted" , async function () {
-            // Todo: implement test token that can fail on mint and create a refund
             expect(await register.addPair(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("PairAdded");
-            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, user.address, ONE_TLOS, ANTELOPE_SENDER_NAME)).to.emit('Transfer');
-            expect(await token.balanceOf(user.address)).to.equal(0);
-            // Todo: check refund was created
+            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, "0x0000000000000000000000000000000000000000", ONE_TLOS, ANTELOPE_SENDER_NAME)).to.emit('BridgeFromAntelopeFailed');
         });
         it("Should let antelope bridge call the refund success callback" , async function () {
-            // Todo: implement test token that can fail on mint and create a refund
             expect(await register.addPair(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("PairAdded");
-            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, user.address, ONE_TLOS, ANTELOPE_SENDER_NAME)).to.emit('Transfer');
-            expect(await token.balanceOf(user.address)).to.equal(0);
-            // Todo: call refund callback with antelope_bridge address
+            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, "0x0000000000000000000000000000000000000000", ONE_TLOS, ANTELOPE_SENDER_NAME)).to.emit('BridgeFromAntelopeFailed');
+            expect(await evm_bridge.connect(antelope_bridge).refundSuccessful(0)).to.emit('BridgeFromAntelopeRefunded');
         });
         it("Should not let random addresses call the refund success callback" , async function () {
-            // Todo: implement test token that can fail on mint and create a refund
             expect(await register.addPair(token.address, ANTELOPE_DECIMALS, ANTELOPE_ACCOUNT_NAME, TOKEN_NAME)).to.emit("PairAdded");
-            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, user.address, ONE_TLOS, ANTELOPE_SENDER_NAME)).to.emit('Transfer');
-            expect(await token.balanceOf(user.address)).to.equal(0);
-            // Todo: call refund callback with user account
+            expect(await evm_bridge.connect(antelope_bridge).bridgeTo(token.address, "0x0000000000000000000000000000000000000000", ONE_TLOS, ANTELOPE_SENDER_NAME)).to.emit('BridgeFromAntelopeFailed');
+            await expect(evm_bridge.connect(user).refundSuccessful(0)).to.be.revertedWith('Only the Antelope bridge EVM address can trigger this method !');
         });
     });
 });

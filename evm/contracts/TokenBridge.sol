@@ -30,6 +30,7 @@ contract TokenBridge is Ownable {
     event  BridgeToAntelopeSucceeded(uint request_id, address indexed sender, address indexed token, uint amount, string recipient);
     event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);
     event  BridgeFromAntelopeFailed(address indexed recipient, address indexed token, uint amount, string refund_account);
+    event  BridgeFromAntelopeRefunded(uint refund_id);
 
     uint public fee;
     uint8 public max_requests_per_requestor;
@@ -113,6 +114,7 @@ contract TokenBridge is Ownable {
         for(uint i = 0; i < requests.length; i++){
             if(refunds[i].id == id){
                 refunds[i] = refunds[requests.length - 1];
+                emit BridgeFromAntelopeRefunded(id);
                 refunds.pop();
             }
         }
