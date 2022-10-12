@@ -87,7 +87,7 @@ namespace evm_bridge
     //======================== Token Bridge actions ========================
     // Trustless bridge to EVM
     [[eosio::on_notify("eosio.token::transfer")]]
-    ACTION tokenbridge::bridge(name from, name to, assert quantity, std::string memo)
+    ACTION tokenbridge::bridge(name from, name to, asset quantity, std::string memo)
     {
         // Check auth
         require_auth(from);
@@ -111,7 +111,7 @@ namespace evm_bridge
             const uint256_t position = pair_array_length->value - i;
             const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 5, 8, position));
             // TODO: convert account_name to eosio name
-            if(intx::to_string(account_name->value) == get_first_receiver()){
+            if(name(decodeHex(bin2hex(intx::to_byte_string(account_name->value))))  == get_first_receiver()){
                 const auto pair_active = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 0, 8, position));
                 // TODO: convert pair_active to boolean
                 check(pair_active->value == uint256_t(0), "The related token pair is paused");
@@ -139,7 +139,7 @@ namespace evm_bridge
         data.insert(data.end(), fnsig.begin(), fnsig.end());
         // TODO: insert token EVM address
         // TODO: insert receiver EVM address
-        auto amount_bs = intx::to_byte_string(quantity);
+        auto amount_bs = intx::to_byte_string(uint256_t(quantity.amount));
         data.insert(data.end(),  amount_bs.begin(), amount_bs.end());
 
         // call TokenBridge.bridgeTo(address token, address receiver, uint amount) on EVM using eosio.evm
@@ -241,6 +241,7 @@ namespace evm_bridge
             const auto recipient = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, position));
             const auto memo = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, position));
 
+            bool success = false;
             // TODO: check valid
             // TODO: add request to processed (???)
 
@@ -296,14 +297,14 @@ namespace evm_bridge
         // Get each member of the Token tokens[] array's antelope_account and compare
         for(uint256_t i = 0; i < token_array_length->value; i=i+1){
             const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(token_array_slot, 4, 8, token_array_length->value - i));
-            if(account_name == token_account){
+            if(name(decodeHex(bin2hex(intx::to_byte_string(account_name->value)))) == token_account){
                 check(false, "The token is already registered");
             }
         }
         // Get each member of the Request requests[] array's antelope_account and compare.
         for(uint256_t i = 0; i < request_array_length->value; i=i+1){
             const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, request_array_length->value - i));
-            if(account_name == token_account){
+            if(name(decodeHex(bin2hex(intx::to_byte_string(account_name->value)))) == token_account){
                 check(false, "The token is already awaiting approval");
             }
         }

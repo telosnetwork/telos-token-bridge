@@ -10,6 +10,7 @@
 #include <eosio/singleton.hpp>
 #include <eosio/crypto.hpp>
 #include <eosio/transaction.hpp>
+#include <eosio/asset.hpp>
 
 // EXTERNAL
 #include <intx/base.hpp>
@@ -56,7 +57,7 @@ namespace evm_bridge
 
             ACTION refundnotify();
             ACTION reqnotify();
-            ACTION bridge(name from, name to, assert quantity, std::string memo);
+            ACTION bridge(name from, name to, asset quantity, std::string memo);
             ACTION signregreq(uint256_t evm_request, name token_account, name token_symbol, eosio::checksum160 evm_address);
 
             //======================= Testing action =============================

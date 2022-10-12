@@ -142,6 +142,28 @@ namespace evm_bridge
         return toChecksum256(array_slot + position + (property_count * (array_length - uint256_t(1))));
   }
 
+  inline unsigned char decodeHex(char c)
+  {
+      if ('0' <= c && c <= '9') { return c      - '0'; }
+      if ('a' <= c && c <= 'f') { return c + 10 - 'a'; }
+      if ('A' <= c && c <= 'F') { return c + 10 - 'A'; }
+      return 0;
+  }
+
+  inline std::string decodeHex(std::string const & s)
+  {
+      std::string result;
+      result.reserve(s.size() / 2);
+
+      for (std::size_t i = 0; i < s.size() / 2; ++i)
+      {
+          unsigned char n = decodeHex(s[2 * i]) * 16 + decodeHex(s[2 * i + 1]);
+          result += n;
+      }
+
+      return result;
+  }
+
   static inline void prefixTupleArrayElement(std::vector<uint8_t> *data){
         std::vector<uint8_t> array_delimiter = pad(intx::to_byte_string(uint256_t(160)), 32, true);  // delimiter
         data->insert(data->end(), array_delimiter.begin(), array_delimiter.end());
