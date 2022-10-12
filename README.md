@@ -1,4 +1,4 @@
-# Telos Antelope <> EVM Token Bridge
+# Telos Antelope <> EVM Token Bridge (WIP)
 
 This repository contains the smart contracts of our trustless Telos Token Bridge divided in two parts: EVM & Antelope.
 
