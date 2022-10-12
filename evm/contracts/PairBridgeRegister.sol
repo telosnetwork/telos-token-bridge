@@ -4,14 +4,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-interface IERC20Bridgeable {
- function burnFrom(address _account, uint256 _amount) external;
- function mint(address _recipient, uint256 _amount) external;
- function decimals() external returns(uint8);
- function symbol() external returns(string memory);
- function name() external returns(string memory);
- function owner() external returns(address);
-}
+import {IERC20Bridgeable} from "./IERC20Bridgeable.sol";
 
 contract PairBridgeRegister is Ownable {
     event  RegistrationRequested(uint request_id, address requestor, address indexed token, string symbol, string name);
@@ -135,7 +128,8 @@ contract PairBridgeRegister is Ownable {
         require(_tokenPairExists(address(token)) == false, "Token has pair already registered");
         require(_tokenPairRegistrationExists(address(token)) == false, "Token has pair already being registered");
 
-        // TODO: NEED TO CHECK ERC20 BRIDGEABLE COMPLIANCE, etc...
+        // Check ERC20Bridgeable compliance
+        require(_isERC20Bridgeable(token), "Token is not ERC20Bridgeable");
 
         // Get the token data
         uint8 evm_decimals = token.decimals();
@@ -253,6 +247,13 @@ contract PairBridgeRegister is Ownable {
     }
 
     // UTILS   ================================================================ >
+    function _isERC20Bridgeable(IERC20Bridgeable token) internal view returns(bool) {
+        try token.supportsInterface(0x01ffc9a7) {
+            return token.supportsInterface(type(IERC20Bridgeable).interfaceId);
+        } catch {
+            return false;
+        }
+    }
     function _antelopeTokenPairExists(string calldata account_name) internal view returns (bool) {
         bytes32 account =  keccak256(abi.encodePacked(account_name));
         for(uint i = 0; i < pairs.length;i++){

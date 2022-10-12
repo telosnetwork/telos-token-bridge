@@ -2,13 +2,8 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-interface IERC20Bridgeable {
- function burnFrom(address _account, uint256 _amount) external;
- function mint(address _recipient, uint256 _amount) external;
- function allowance(address owner, address spender) external returns(uint);
-}
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20Bridgeable} from "./IERC20Bridgeable.sol";
 
 interface IPairBridgeRegister {
  struct Pair {
@@ -26,6 +21,7 @@ interface IPairBridgeRegister {
 }
 
 contract TokenBridge is Ownable {
+
     event  BridgeToAntelopeRequested(uint request_id, address indexed sender, address indexed token, uint amount, string recipient);
     event  BridgeToAntelopeSucceeded(uint request_id, address indexed sender, address indexed token, uint amount, string recipient);
     event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);
