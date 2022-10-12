@@ -31,9 +31,7 @@ const abi = [
 ];
 
 (async function() {
-    const provider = ethers.getDefaultProvider("https://testnet.telos.net/evm");
-    const erc20 = new ethers.Contract(address, abi, provider);
-    erc20.requestRegistration (token);
+
 })();
 ```
 
