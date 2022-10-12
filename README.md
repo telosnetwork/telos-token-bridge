@@ -24,10 +24,16 @@ ERC20Bridgeable token owners can use our PairRegister to request a pair registra
 
 ```
 const { BigNumber, ethers, utils } = require("ethers");
+const address = "TOKENBRIDGE EVM CONTRACT";
+const token = "ERC20Bridgeable TOKEN ADDRESS"
+const abi = [
+    "function requestRegistration (IERC20Bridgeable token) external returns(uint)",
+];
 
 (async function() {
     const provider = ethers.getDefaultProvider("https://testnet.telos.net/evm");
-
+    const erc20 = new ethers.Contract(address, abi, provider);
+    erc20.requestRegistration (token);
 })();
 ```
 
