@@ -1,4 +1,4 @@
-# Telos Antelope <> EVM Token Bridge
+# Telos Antelope <> EVM Token Bridge (WIP)
 
 This repository contains the smart contracts of our trustless Telos Token Bridge divided in two parts: EVM & Antelope.
 
@@ -23,7 +23,16 @@ On Telos, the EVM runs inside one eosio.evm smart contract on our Antelope nativ
 ERC20Bridgeable token owners can use our PairRegister to request a pair registration on EVM
 
 ```
-  const { ethers } = require("ethers");
+const { BigNumber, ethers, utils } = require("ethers");
+const address = "TOKENBRIDGE EVM CONTRACT";
+const token = "ERC20Bridgeable TOKEN ADDRESS"
+const abi = [
+    "function requestRegistration (IERC20Bridgeable token) external returns(uint)",
+];
+
+(async function() {
+
+})();
 ```
 
 Once the request has been created you can sign it from Antelope , using the token account with eosjs cleos or a block explorer.
@@ -32,7 +41,7 @@ Once the request has been created you can sign it from Antelope , using the toke
   const { eosjs } = require("eosjs");
 ```
 
-### 1. Pair approval
+### 2. Pair approval
 
 The community / BPs can approve that request via an Antelope multisig sending a transaction to EVM via the prods.evm account and adding the new pair to the bridge.
 
