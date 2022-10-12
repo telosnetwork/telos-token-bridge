@@ -12,7 +12,7 @@ const ANTELOPE_ACCOUNT_NAME = "mytoken";
 const ANTELOPE_DECIMALS = 14;
 
 describe("PairBridgeRegister Contract", function () {
-    let antelope_bridge, evm_bridge, user, token, token2, register;
+    let antelope_bridge, evm_bridge, user, token, token2, register, token_non_bridgeable;
     beforeEach(async () => {
         [antelope_bridge, user] = await ethers.getSigners();
         let PairRegister = await ethers.getContractFactory("PairBridgeRegister");
@@ -53,7 +53,10 @@ describe("PairBridgeRegister Contract", function () {
             expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.requests(0)).to.not.be.reverted;
         });
-        // What happens if someone adds token they do not own ??? Maybe need to add antelope account on antelope sign only....
+        it("Should not let a token owner add a registration request for a token that does not implement ERC20Bridgeable" , async function () {
+            // Todo: get a base ERC20 token instance
+            await expect(register.requestRegistration(token.address)).to.be.reverted;
+        });
         it("Should not allow two registration requests for same token" , async function () {
             expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.requestRegistration(token.address)).to.be.revertedWith('Token has pair already being registered');

@@ -19,10 +19,13 @@ namespace evm_bridge
   static constexpr size_t CURRENT_CHAIN_ID = ChainIDs::TELOS_TESTNET;
   static constexpr eosio::name ESCROW = eosio::name("escrow.brdg");
   static constexpr eosio::name EVM_SYSTEM_CONTRACT = eosio::name("eosio.evm");
-  static constexpr std::string EVM_SUCCESS_CALLBACK_SIGNATURE = "eb5bb2f6";
-  static constexpr std::string EVM_BRIDGE_SIGNATURE = "eb5bb2f6";
-  static constexpr std::string EVM_SIGN_REGISTRATION_SIGNATURE = "eb5bb2f6";
-  static constexpr uint STORAGE_BRIDGE_REQUEST_INDEX = 3;
-  static constexpr uint STORAGE_REGISTER_REQUEST_INDEX = 2;
-  static constexpr uint STORAGE_REGISTER_PAIR_INDEX = 2;
+  static constexpr uint256_t BASE_GAS = 50000;
+  static constexpr auto EVM_SUCCESS_CALLBACK_SIGNATURE = "eb5bb2f6";
+  static constexpr auto EVM_REFUND_CALLBACK_SIGNATURE = "eb5bb2f6";
+  static constexpr auto EVM_BRIDGE_SIGNATURE = "eb5bb2f6";
+  static constexpr auto EVM_SIGN_REGISTRATION_SIGNATURE = "eb5bb2f6";
+  static constexpr uint256_t STORAGE_BRIDGE_REQUEST_INDEX = 3;
+  static constexpr uint256_t STORAGE_BRIDGE_REFUND_INDEX = 3;
+  static constexpr uint256_t STORAGE_REGISTER_REQUEST_INDEX = 2;
+  static constexpr uint256_t STORAGE_REGISTER_PAIR_INDEX = 2;
 }

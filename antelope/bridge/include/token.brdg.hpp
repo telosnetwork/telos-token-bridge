@@ -30,14 +30,13 @@
 using namespace std;
 using namespace eosio;
 using namespace evm_bridge;
-using namespace evm_util;
 
 namespace evm_bridge
 {
     class [[eosio::contract("token.brdg")]] tokenbridge : public contract {
         public:
             using contract::contract;
-            tokenbridge(name self, name code, datastream<const char*> ds) : contract(self, code, ds), config_bridge(self, self.value) { };
+            tokenbridge(name self, name code, datastream<const char*> ds) : contract(self, code, ds), config_bridge(self, self.value), config(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value) { };
             ~tokenbridge() {};
 
             //======================== Admin actions ========================
@@ -55,9 +54,10 @@ namespace evm_bridge
 
             //======================== Token bridge actions ========================
 
+            ACTION refundnotify();
             ACTION reqnotify();
-            ACTION bridge(name token_account, uint256_t amount);
-            ACTION registerToken(name user, name token_account, name token_symbol, eosio::checksum160 evm_address);
+            ACTION bridge(name from, name to, assert quantity, std::string memo);
+            ACTION signregreq(uint256_t evm_request, name token_account, name token_symbol, eosio::checksum160 evm_address);
 
             //======================= Testing action =============================
             #if (TESTING == true)
@@ -68,5 +68,6 @@ namespace evm_bridge
             #endif
 
             config_singleton_bridge config_bridge;
+            config_singleton_evm config;
     };
 }

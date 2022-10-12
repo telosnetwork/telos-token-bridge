@@ -20,4 +20,6 @@ namespace evm_bridge {
 
     typedef singleton<"bridgeconfig"_n, bridgeconfig> config_singleton_bridge;
 
+    // Request
+    // Refunds
 }
