@@ -28,11 +28,11 @@ namespace evm_bridge
         // Get the scope
         account_table accounts(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value);
         auto accounts_byaddress = accounts.get_index<"byaddress"_n>();
-        auto account_bridge = accounts_byaddress.require_find(pad160(bridge_address), "EVM Bridge not found in eosio.evm accounts");
-        auto account_register = accounts_byaddress.require_find(pad160(register_address), "EVM Register not found in eosio.evm accounts");
+        auto account_bridge = accounts_byaddress.find(pad160(bridge_address));
+        auto account_register = accounts_byaddress.find(pad160(register_address));
 
-        stored.evm_bridge_scope = account_bridge->index;
-        stored.evm_register_scope = account_register->index;
+        stored.evm_bridge_scope = (account_bridge != accounts_byaddress.end()) ? account_bridge->index : 0;
+        stored.evm_register_scope = (account_register != accounts_byaddress.end()) ? account_register->index : 0;
 
         config_bridge.set(stored, get_self());
     };
@@ -57,15 +57,15 @@ namespace evm_bridge
         // Get the relevant accounts for eosio.evm accountstates table
         account_table accounts(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value);
         auto accounts_byaddress = accounts.get_index<"byaddress"_n>();
-        auto account_bridge = accounts_byaddress.require_find(pad160(bridge_address), "EVM Bridge not found in eosio.evm accounts");
-        auto account_register = accounts_byaddress.require_find(pad160(register_address), "EVM Register not found in eosio.evm accounts");
+        auto account_bridge = accounts_byaddress.find(pad160(bridge_address));
+        auto account_register = accounts_byaddress.find(pad160(register_address));
 
         // Save
         auto stored = config_bridge.get();
         stored.evm_bridge_address = bridge_address;
-        stored.evm_bridge_scope = account_bridge->index;
+        stored.evm_bridge_scope = (account_bridge != accounts_byaddress.end()) ? account_bridge->index : 0;
         stored.evm_register_address = register_address;
-        stored.evm_register_scope = account_register->index;
+        stored.evm_register_scope = (account_register != accounts_byaddress.end()) ? account_register->index : 0;
 
         config_bridge.set(stored, get_self());
     };

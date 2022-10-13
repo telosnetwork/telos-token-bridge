@@ -18,45 +18,82 @@ describe("token.brdg.cpp test", () => {
             abi: "./build/token.brdg.abi",
             wasm: "./build/token.brdg.wasm",
         });
+        bridge.action.init(
+            { "bridge_address": EVM_BRIDGE, "register_address": EVM_REGISTER, "version": "1", "admin": bridgeAccount.name },
+            [{ actor: bridgeAccount.name, permission: "active" }]
+        );
     }, 60000);
 
     describe(":: Deployment", function () {
         it("Should not let random accounts init configuration", async () => {
             await expectThrow(
                 bridge.action.init(
-                    { "bridge_address" : EVM_BRIDGE, "register_address" :EVM_REGISTER, "version": "1", "admin": account.name },
+                    { "bridge_address": EVM_BRIDGE, "register_address": EVM_REGISTER, "version": "1", "admin": account.name },
                     [{ actor: account.name, permission: "active" }]
                 ),
                 "missing authority of token.brdg"
             );
         });
-        it("Should let token.brdg account init configuration", async () => {
-            bridge.action.init(
-                { "bridge_address" : EVM_BRIDGE, "register_address" :EVM_REGISTER, "version": "1", "admin": bridge.name },
-                [{ actor: bridge.name, permission: "active" }]
+        it("Should not let init be called twice", async () => {
+            await expectThrow(
+                bridge.action.init(
+                    { "bridge_address": EVM_BRIDGE, "register_address": EVM_REGISTER, "version": "1", "admin": bridgeAccount.name },
+                    [{ actor: bridgeAccount.name, permission: "active" }]
+                ),
+                "contract already initialized"
             );
         });
     });
     describe(":: Setters", function () {
         it("Should let admin set new evm contracts addresses", async () => {
-
+            bridge.action.setevmctc(
+                { "bridge_address" : EVM_BRIDGE, "register_address" : EVM_REGISTER },
+                [{ actor: bridgeAccount.name, permission: "active" }]
+            );
+        });
+        it("Should not let random accounts set new evm contracts addresses", async () => {
+            await expectThrow(
+                bridge.action.setevmctc(
+                    { "bridge_address" : EVM_BRIDGE, "register_address" : EVM_REGISTER },
+                    [{ actor: account.name, permission: "active" }]
+                ),
+                "missing authority of token.brdg"
+            );
         });
         it("Should let admin set the admin", async () => {
-
+            bridge.action.setadmin(
+                { "new_admin" : bridgeAccount.name },
+                [{ actor: bridgeAccount.name, permission: "active" }]
+            );
         });
         it("Should not let random accounts set the admin", async () => {
-
+            await expectThrow(
+                bridge.action.setadmin(
+                    { "new_admin" : account.name },
+                    [{ actor: account.name, permission: "active" }]
+                ),
+                "missing authority of token.brdg"
+            );
         });
         it("Should let admin set the version", async () => {
-
+            bridge.action.setversion(
+                { "new_version" : "2" },
+                [{ actor: bridgeAccount.name, permission: "active" }]
+            );
         });
         it("Should not let random accounts set the version", async () => {
-
+            await expectThrow(
+                bridge.action.setversion(
+                    { "new_version" : "2" },
+                    [{ actor: account.name, permission: "active" }]
+                ),
+                "missing authority of token.brdg"
+            );
         });
     });
     describe(":: Sign EVM registration request", function () {
         it("Should let token owners sign registration requests from Antelope", async () => {
-
+            // Todo: find way to have EVM test deployment on same network
         });
     });
     describe(":: Bridge to EVM", function () {
