@@ -1,7 +1,7 @@
 const { Chain } = require("qtest-js");
-const { expectAction } = require("qtest-js");
-const EVM_BRIDGE = "";
-const EVM_REGISTER = "";
+const { expectAction, expectThrow } = require("qtest-js");
+const EVM_BRIDGE = "6f989daff4f485aba94583110d555e7af36e531a";
+const EVM_REGISTER = "5f989daff4f485aba94583110d555e7af36e531a";
 
 describe("token.brdg.cpp test", () => {
     let chain;
