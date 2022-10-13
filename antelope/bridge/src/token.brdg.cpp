@@ -9,7 +9,7 @@ namespace evm_bridge
 {
     //======================== Admin actions ==========================
     // Initialize the contract
-    ACTION tokenbridge::init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, string version, name admin){
+    ACTION tokenbridge::init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, std::string version, eosio::name admin){
         // Authenticate
         require_auth(get_self());
 
@@ -38,7 +38,7 @@ namespace evm_bridge
     };
 
     // Set the contract version
-    ACTION tokenbridge::setversion(string new_version){
+    ACTION tokenbridge::setversion(std::string new_version){
         // Authenticate
         require_auth(config_bridge.get().admin);
 
@@ -71,7 +71,7 @@ namespace evm_bridge
     };
 
     // Set new contract admin
-    ACTION tokenbridge::setadmin(name new_admin){
+    ACTION tokenbridge::setadmin(eosio::name new_admin){
         // Authenticate
         require_auth(config_bridge.get().admin);
 
@@ -87,9 +87,9 @@ namespace evm_bridge
     //======================== Token Bridge actions ========================
     // Trustless bridge to EVM
     [[eosio::on_notify("eosio.token::transfer")]]
-    ACTION tokenbridge::bridge(name from, name to, asset quantity, std::string memo)
+    ACTION tokenbridge::bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo)
     {
-        // Check auth
+        // Check auth (???)
         require_auth(from);
 
         // Open config singleton
@@ -264,9 +264,8 @@ namespace evm_bridge
         }
     };
 
-
     // Verify token & sign EVM registration request
-    ACTION tokenbridge::signregreq(uint256_t request_id, name token_account, name token_symbol, eosio::checksum160 evm_address)
+    ACTION tokenbridge::signregpair(eosio::checksum160 evm_address, eosio::name token_account, eosio::name token_symbol, bigint::checksum256 request_id)
     {
         // Check auth
         require_auth(token_account);
@@ -302,8 +301,8 @@ namespace evm_bridge
             }
         }
         // Get each member of the Request requests[] array's antelope_account and compare.
-        for(uint256_t i = 0; i < request_array_length->value; i=i+1){
-            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, request_array_length->value - i));
+        for(uint256_t k = 0; k < request_array_length->value; k=k+1){
+            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, request_array_length->value - k));
             if(name(decodeHex(bin2hex(intx::to_byte_string(account_name->value)))) == token_account){
                 check(false, "The token is already awaiting approval");
             }

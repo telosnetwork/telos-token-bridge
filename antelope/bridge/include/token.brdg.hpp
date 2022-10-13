@@ -38,31 +38,23 @@ namespace evm_bridge
 
             //======================== Admin actions ========================
             // intialize the contract
-            ACTION init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, string version, name admin);
+            ACTION init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, std::string version, eosio::name admin);
 
             // set the contract version
-            ACTION setversion(string new_version);
+            ACTION setversion(std::string new_version);
 
             // set the bridge & register evm addresses
             ACTION setevmctc(eosio::checksum160 bridge_address, eosio::checksum160 register_address);
 
             // set new contract admin
-            ACTION setadmin(name new_admin);
+            ACTION setadmin(eosio::name new_admin);
 
             //======================== Token bridge actions ========================
 
             ACTION refundnotify();
             ACTION reqnotify();
-            ACTION bridge(name from, name to, asset quantity, std::string memo);
-            ACTION signregreq(uint256_t evm_request, name token_account, name token_symbol, eosio::checksum160 evm_address);
-
-            //======================= Testing action =============================
-            #if (TESTING == true)
-                ACTION clearall()
-                {
-                    config_bridge.remove();
-                }
-            #endif
+            ACTION bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo);
+            ACTION signregpair(eosio::checksum160 evm_address, eosio::name token_account, eosio::name token_symbol, bigint::checksum256 request_id);
 
             config_singleton_bridge config_bridge;
             config_singleton_evm config;
