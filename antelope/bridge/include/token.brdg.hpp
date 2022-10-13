@@ -3,8 +3,6 @@
 // @contract token.brdg
 // @version v1.0
 
-#include <vector>
-
 // EOSIO
 #include <eosio/eosio.hpp>
 #include <eosio/singleton.hpp>
@@ -25,8 +23,6 @@
 #include <datastream.hpp>
 #include <evm_tables.hpp>
 #include <tables.hpp>
-
-#define EVM_SYSTEM_CONTRACT name("eosio.evm")
 
 using namespace std;
 using namespace eosio;

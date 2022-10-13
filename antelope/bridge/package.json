@@ -1,0 +1,17 @@
+{
+  "name": "token-bridge-antelope",
+  "version": "1.0.0",
+  "description": "",
+  "main": "jest.config.js",
+  "dependencies": {
+    "jest": "^28.1.3"
+  },
+  "devDependencies": {
+    "qtest-js": "^0.4.0"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC"
+}
