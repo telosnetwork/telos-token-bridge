@@ -22,7 +22,7 @@ describe("PairBridgeRegister Contract", function () {
         let ERC20Bridgeable = await ethers.getContractFactory("ERC20Bridgeable");
         token = await ERC20Bridgeable.deploy(evm_bridge.address,  TOKEN_NAME, TOKEN_SYMBOL);
         token2 = await ERC20Bridgeable.deploy(evm_bridge.address,  TOKEN_NAME + " 2", TOKEN_SYMBOL + "2");
-        const ERC20 = await ethers.getContractFactory("ERC20");
+        let ERC20 = await ethers.getContractFactory("ERC20");
         token_non_bridgeable = await ERC20.deploy(TOKEN_NAME + "NB", TOKEN_SYMBOL + "NB");
     })
     describe(":: Deployment", async function () {
@@ -56,7 +56,8 @@ describe("PairBridgeRegister Contract", function () {
             await expect(register.requests(0)).to.not.be.reverted;
         });
         it("Should not let a token owner add a registration request for a token that does not implement ERC20Bridgeable" , async function () {
-            await expect(register.requestRegistration(token_non_bridgeable.address)).to.be.reverted;
+            await expect(register.requestRegistration(token_non_bridgeable.address)).to.be.revertedWith("Token is not ERC20Bridgeable");
+            await expect(register.requests(0)).to.be.reverted;
         });
         it("Should not allow two registration requests for same token" , async function () {
             expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');

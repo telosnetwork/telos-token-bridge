@@ -120,16 +120,16 @@ contract PairBridgeRegister is Ownable {
 
         _removeOutdatedRegistrationRequests(); // Remove outdated registrations as new one are added...
 
-        // Check sender is owner
-        address owner = token.owner();
-        require(msg.sender == owner, "Sender must be token owner");
-
         // Check pair for this token does not already exist
         require(_tokenPairExists(address(token)) == false, "Token has pair already registered");
         require(_tokenPairRegistrationExists(address(token)) == false, "Token has pair already being registered");
 
         // Check ERC20Bridgeable compliance
         require(_isERC20Bridgeable(token), "Token is not ERC20Bridgeable");
+
+        // Check sender is owner (after ERC20Brigeable check to make sure the token is ownable)
+        address owner = token.owner();
+        require(msg.sender == owner, "Sender must be token owner");
 
         // Get the token data
         uint8 evm_decimals = token.decimals();
@@ -147,7 +147,7 @@ contract PairBridgeRegister is Ownable {
     // Let Antelope bridge sign request (after verification of the eosio.token token there)
     function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_name, string calldata _antelope_symbol) external onlyBridge {
         _removeOutdatedRegistrationRequests();
-        require(_antelopeTokenPairExists(_antelope_account_name) == false, "Antelope token already in a registered pair");
+        require(_antelopeTokenPairExists(_antelope_account_name) == false, "Antelope token already in a pair");
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                requests[i].antelope_account_name = _antelope_account_name;
@@ -249,7 +249,7 @@ contract PairBridgeRegister is Ownable {
     // UTILS   ================================================================ >
     function _isERC20Bridgeable(IERC20Bridgeable token) internal view returns(bool) {
         try token.supportsInterface(0x01ffc9a7) {
-            return token.supportsInterface(type(IERC20Bridgeable).interfaceId);
+            return true;
         } catch {
             return false;
         }
