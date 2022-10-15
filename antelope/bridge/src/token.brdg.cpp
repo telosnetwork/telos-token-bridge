@@ -265,10 +265,8 @@ namespace evm_bridge
     };
 
     // Verify token & sign EVM registration request
-    ACTION tokenbridge::signregpair(eosio::checksum160 evm_address, eosio::name token_account, eosio::name token_symbol, bigint::checksum256 request_id)
+    ACTION tokenbridge::signregpair(eosio::checksum160 evm_address, eosio::name account, eosio::symbol symbol, bigint::checksum256 request_id)
     {
-        // Check auth
-        require_auth(token_account);
 
         // Open config singleton
         auto conf = config_bridge.get();
@@ -277,7 +275,14 @@ namespace evm_bridge
         // Find the EVM account of this contract
         account_table _accounts(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value);
         auto accounts_byaccount = _accounts.get_index<"byaccount"_n>();
-        auto account = accounts_byaccount.require_find(get_self().value, "Account not found");
+        auto evm_account = accounts_byaccount.require_find(get_self().value, "No EVM account found for token.brdg");
+
+        // Get token info from eosio.token stat table
+        eosio_tokens token_row(account, symbol.code().raw());
+        auto token = token_row.require_find(symbol.code().raw(), "Token not found. Make sure the symbol is correct.");
+
+        // Check auth
+        require_auth(token->issuer);
 
         // Define EVM Account State table with EVM register contract scope
         account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
@@ -295,45 +300,45 @@ namespace evm_bridge
         // Check token doesn't already exist in EVM Register
         // Get each member of the Token tokens[] array's antelope_account and compare
         for(uint256_t i = 0; i < token_array_length->value; i=i+1){
-            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(token_array_slot, 4, 8, token_array_length->value - i));
-            if(name(decodeHex(bin2hex(intx::to_byte_string(account_name->value)))) == token_account){
+            const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(token_array_slot, 4, 8, token_array_length->value - i));
+            // Todo: check antelope account too ?
+            if(name(decodeHex(bin2hex(intx::to_byte_string(symbol_name->value)))).value == symbol.code().raw()){
                 check(false, "The token is already registered");
             }
         }
         // Get each member of the Request requests[] array's antelope_account and compare.
         for(uint256_t k = 0; k < request_array_length->value; k=k+1){
-            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, request_array_length->value - k));
-            if(name(decodeHex(bin2hex(intx::to_byte_string(account_name->value)))) == token_account){
+            const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, request_array_length->value - k));
+            // Todo: check antelope account too ?
+            if(name(decodeHex(bin2hex(intx::to_byte_string(symbol_name->value)))).value == symbol.code().raw()){
                 check(false, "The token is already awaiting approval");
             }
         }
 
-        // TODO: Get token infos (decimals, ...)
-        uint256_t decimals = 14;
-        // TODO:  Check token is compatible (TBD)(???)
+        // TODO: Check token is compatible (TBD) (Should not need to given we just lock / unlock those tokens on Antelope side)
 
-        // Prepare address
+        // Prepare EVM contract address
         auto evm_contract = conf.evm_register_address.extract_as_byte_array();
         std::vector<uint8_t> to;
         to.insert(to.end(),  evm_contract.begin(), evm_contract.end());
 
-        // Prepare solidity function parameters (function signature + arguments)
+        // Prepare Solidity function call (function signature + arguments)
         std::vector<uint8_t> data;
         std::vector<uint8_t> request_id_bs = intx::to_byte_string(request_id);
-        std::vector<uint8_t> decimals_bs = pad(intx::to_byte_string(decimals), 32, true);
+        std::vector<uint8_t> decimals_bs = pad(intx::to_byte_string(uint256_t(symbol.precision())), 32, true);
         request_id_bs.insert(request_id_bs.begin(),(16 - request_id_bs.size()), 0);
         auto fnsig = toBin(EVM_SIGN_REGISTRATION_SIGNATURE);
         data.insert(data.end(), fnsig.begin(), fnsig.end());
         data.insert(data.end(), request_id_bs.begin(), request_id_bs.end());
         data.insert(data.end(), decimals_bs.begin(), decimals_bs.end());
-        // TODO: Convert & add antelope symbol & account name
+        // TODO: Convert & add antelope symbol.code().raw() & token->issuer
 
         // Send signRegistrationRequest call to EVM using eosio.evm
         action(
             permission_level {get_self(), "active"_n},
             EVM_SYSTEM_CONTRACT,
             "raw"_n,
-            std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
+            std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
         ).send();
     };
 }

@@ -19,13 +19,14 @@ namespace evm_bridge
   static constexpr size_t CURRENT_CHAIN_ID = ChainIDs::TELOS_TESTNET;
   static constexpr eosio::name ESCROW = eosio::name("escrow.brdg");
   static constexpr eosio::name EVM_SYSTEM_CONTRACT = eosio::name("eosio.evm");
+  static constexpr eosio::name TOKEN_CONTRACT = eosio::name("eosio.token");
   static constexpr uint256_t BASE_GAS = 50000;
-  static constexpr auto EVM_SUCCESS_CALLBACK_SIGNATURE = "eb5bb2f6";
-  static constexpr auto EVM_REFUND_CALLBACK_SIGNATURE = "eb5bb2f6";
-  static constexpr auto EVM_BRIDGE_SIGNATURE = "eb5bb2f6";
-  static constexpr auto EVM_SIGN_REGISTRATION_SIGNATURE = "eb5bb2f6";
-  static constexpr uint256_t STORAGE_BRIDGE_REQUEST_INDEX = 3;
-  static constexpr uint256_t STORAGE_BRIDGE_REFUND_INDEX = 3;
-  static constexpr uint256_t STORAGE_REGISTER_REQUEST_INDEX = 2;
+  static constexpr auto EVM_SUCCESS_CALLBACK_SIGNATURE = "0fbc79cd";
+  static constexpr auto EVM_REFUND_CALLBACK_SIGNATURE = "dc2fdf9f";
+  static constexpr auto EVM_BRIDGE_SIGNATURE = "7d056de7";
+  static constexpr auto EVM_SIGN_REGISTRATION_SIGNATURE = "ec0aacf2";
+  static constexpr uint256_t STORAGE_BRIDGE_REQUEST_INDEX = 4;
+  static constexpr uint256_t STORAGE_BRIDGE_REFUND_INDEX = 5;
+  static constexpr uint256_t STORAGE_REGISTER_REQUEST_INDEX = 3;
   static constexpr uint256_t STORAGE_REGISTER_PAIR_INDEX = 2;
 }

@@ -11,10 +11,10 @@ contract PairBridgeRegister is Ownable {
     event  RegistrationRequestSigned(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  RegistrationRequestApproved(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  RegistrationRequestDeleted(uint request_id, address indexed token, string antelope_account);
-    event  PairPaused(uint pair_id, address indexed token, string symbol, string name, string antelope_account);
-    event  PairAdded(uint pair_id, address indexed token, string symbol, string name, string antelope_account);
-    event  PairUnpaused(uint pair_id, address indexed token, string symbol, string name, string antelope_account);
-    event  PairDeleted(uint pair_id, address indexed token, string symbol, string name, string antelope_account);
+    event  PairPaused(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
+    event  PairAdded(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
+    event  PairUnpaused(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
+    event  PairDeleted(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
 
     uint request_id;
     uint pair_id;
@@ -25,10 +25,11 @@ contract PairBridgeRegister is Ownable {
         address evm_address;
         uint8 evm_decimals;
         uint8 antelope_decimals;
+        string antelope_issuer_name;
         string antelope_account_name;
-        string antelope_name;
-        string symbol;
-        string name;
+        string antelope_symbol_name;
+        string evm_symbol;
+        string evm_name;
     }
 
     struct Request {
@@ -38,11 +39,11 @@ contract PairBridgeRegister is Ownable {
         uint8 evm_decimals;
         uint8 antelope_decimals;
         uint timestamp;
+        string antelope_issuer_name;
         string antelope_account_name;
-        string antelope_name;
-        string antelope_symbol;
-        string symbol;
-        string name;
+        string antelope_symbol_name;
+        string evm_symbol;
+        string evm_name;
     }
 
     Pair[] public pairs;
@@ -133,11 +134,11 @@ contract PairBridgeRegister is Ownable {
 
         // Get the token data
         uint8 evm_decimals = token.decimals();
-        string memory symbol = token.symbol();
-        string memory name = token.name();
+        string memory evm_symbol = token.symbol();
+        string memory evm_name = token.name();
 
         // Add a token pair registration request
-        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, "", "", "", symbol, name ));
+        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, "", "", "", evm_symbol, evm_name ));
         emit RegistrationRequested(request_id, msg.sender, address(token), symbol, name);
         request_id++;
         request_counts[msg.sender]++;
@@ -145,16 +146,16 @@ contract PairBridgeRegister is Ownable {
     }
 
     // Let Antelope bridge sign request (after verification of the eosio.token token there)
-    function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_name, string calldata _antelope_symbol) external onlyBridge {
+    function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_issuer_name, string calldata _antelope_symbol) external onlyBridge {
         _removeOutdatedRegistrationRequests();
         require(_antelopeTokenPairExists(_antelope_account_name) == false, "Antelope token already in a pair");
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                requests[i].antelope_account_name = _antelope_account_name;
                requests[i].antelope_symbol = _antelope_symbol;
-               requests[i].antelope_name = _antelope_name;
+               requests[i].antelope_issuer_name = _antelope_issuer_name;
                requests[i].antelope_decimals = _antelope_decimals;
-               emit RegistrationRequestSigned(requests[i].id, requests[i].evm_address,  _antelope_account_name, _antelope_name, requests[i].symbol, requests[i].name);
+               emit RegistrationRequestSigned(requests[i].id, requests[i].evm_address,  _antelope_account_name, _antelope_name, requests[i].evm_symbol, requests[i].evm_name);
                return;
             }
         }
@@ -196,8 +197,8 @@ contract PairBridgeRegister is Ownable {
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                require(requests[i].antelope_decimals > 0, "Request not signed by Antelope");
-               pairs.push(Pair(true, pair_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_account_name, requests[i].antelope_name, requests[i].symbol, requests[i].name));
-               emit PairAdded(pair_id, requests[i].evm_address, requests[i].symbol, requests[i].name, requests[i].antelope_account_name);
+               pairs.push(Pair(true, pair_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_account_name, requests[i].antelope_name, requests[i].antelope_symbol,  requests[i].evm_symbol, requests[i].evm_name));
+               emit PairAdded(pair_id, requests[i].evm_address, requests[i].evm_symbol, requests[i].evm_name, requests[i].antelope_account_name);
                requests[i] = requests[requests.length - 1];
                requests.pop();
                pair_id++;
@@ -212,10 +213,10 @@ contract PairBridgeRegister is Ownable {
     // Let owner, the prods.evm EVM address, add pairs
     function addPair (IERC20Bridgeable evm_token, uint8 antelope_decimals, string calldata antelope_account_name, string calldata antelope_name) external onlyOwner returns(uint) {
         uint8 evm_decimals = evm_token.decimals();
-        string memory symbol = evm_token.symbol();
-        string memory name = evm_token.name();
+        string memory evm_symbol = evm_token.symbol();
+        string memory evm_name = evm_token.name();
         pairs.push(Pair(true, pair_id, address(evm_token), evm_decimals, antelope_decimals, antelope_account_name, antelope_name, symbol, name));
-        emit PairAdded(pair_id, address(evm_token), symbol, name, antelope_account_name);
+        emit PairAdded(pair_id, address(evm_token), evm_symbol, evm_name, antelope_account_name);
         pair_id++;
         return (pair_id - 1);
     }
@@ -224,20 +225,20 @@ contract PairBridgeRegister is Ownable {
     function unpausePair (uint id) external onlyOwner {
         Pair storage token = _getPair(id);
         token.active = true;
-        emit PairUnpaused(id, token.evm_address, token.symbol, token.name, token.antelope_account_name);
+        emit PairUnpaused(id, token.evm_address, token.evm_symbol, token.evm_name, token.antelope_account_name);
     }
 
     // Let owner, the prods.evm EVM address, pause pairs
     function pausePair (uint id) external onlyOwner {
        Pair storage token = _getPair(id);
        token.active = false;
-       emit PairPaused(id, token.evm_address, token.symbol, token.name, token.antelope_account_name);
+       emit PairPaused(id, token.evm_address, token.evm_symbol, token.evm_name, token.antelope_account_name);
     }
 
     function removePair (uint id) external onlyOwner {
         for(uint i; i < pairs.length;i++){
             if(pairs[i].id == id){
-               emit PairDeleted(pairs[i].id, pairs[i].evm_address, pairs[i].symbol, pairs[i].name, pairs[i].antelope_account_name);
+               emit PairDeleted(pairs[i].id, pairs[i].evm_address, pairs[i].evm_symbol, pairs[i].evm_name, pairs[i].antelope_account_name);
                pairs[i] = pairs[pairs.length - 1];
                pairs.pop();
                return;

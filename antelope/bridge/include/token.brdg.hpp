@@ -54,7 +54,7 @@ namespace evm_bridge
             ACTION refundnotify();
             ACTION reqnotify();
             ACTION bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo);
-            ACTION signregpair(eosio::checksum160 evm_address, eosio::name token_account, eosio::name token_symbol, bigint::checksum256 request_id);
+            ACTION signregpair(eosio::checksum160 evm_address, eosio::name account, eosio::symbol symbol, bigint::checksum256 request_id);
 
             config_singleton_bridge config_bridge;
             config_singleton_evm config;
