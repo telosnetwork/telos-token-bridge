@@ -1,6 +1,14 @@
 # Telos Token Bridge :: EVM
 
-This is the EVM part of our Token Bridge repository
+This is the EVM part of our Token Bridge repository. It is currently running on:
+
+**TESTNET**
+- PairBridgeRegister: TBD
+- TokenBridge: TBD
+
+**MAINNET**
+- PairBridgeRegister: TBD
+- TokenBridge: TBD
 
 ## Contracts
 
