@@ -163,19 +163,24 @@ namespace evm_bridge
 
       return result;
   }
-
+  static inline void insertElementPosition(std::vector<uint8_t> *data, uint256_t position){
+        std::vector<uint8_t>string_position_bs = pad(intx::to_byte_string(position), 32, true);
+        data->insert(data->end(), string_position_bs.begin(), string_position_bs.end());
+  }
+  static inline void insertString(std::vector<uint8_t> *data, uint64_t value, uint64_t length){
+        std::vector<uint8_t> string_bs = pad(intx::to_byte_string(value), 32, false);
+        std::vector<uint8_t> string_size = pad(intx::to_byte_string(length), 32, true);
+        data->insert(data->end(), string_size.begin(), string_size.end());
+        data->insert(data->end(), string_bs.begin(), string_bs.end());
+  }
   static inline void prefixTupleArrayElement(std::vector<uint8_t> *data){
-        std::vector<uint8_t> array_delimiter = pad(intx::to_byte_string(uint256_t(160)), 32, true);  // delimiter
-        data->insert(data->end(), array_delimiter.begin(), array_delimiter.end());
-        array_delimiter = pad(intx::to_byte_string(uint256_t(224)), 32, true);  // delimiter
-        data->insert(data->end(), array_delimiter.begin(), array_delimiter.end());
+        insertElementPosition(data, 160);
+        insertElementPosition(data, 224);
   }
 
-  static inline void prefixTupleArray(std::vector<uint8_t> *data, uint64_t total){
-        std::vector<uint8_t> array_delimiter = pad(intx::to_byte_string(uint256_t(64)), 32, true); // delimiter
-        data->insert(data->end(), array_delimiter.begin(), array_delimiter.end());
-        array_delimiter = pad(intx::to_byte_string(uint256_t(total)), 32, true); // total array length
-        data->insert(data->end(), array_delimiter.begin(), array_delimiter.end());
+  static inline void prefixTupleArray(std::vector<uint8_t> *data, uint64_t total, uint256_t position){
+        insertElementPosition(data, position);
+        insertElementPosition(data, uint256_t(total));
   }
 
   /**

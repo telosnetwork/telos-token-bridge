@@ -315,30 +315,39 @@ namespace evm_bridge
             }
         }
 
-        // TODO: Check token is compatible (TBD) (Should not need to given we just lock / unlock those tokens on Antelope side)
-
         // Prepare EVM contract address
         auto evm_contract = conf.evm_register_address.extract_as_byte_array();
         std::vector<uint8_t> to;
         to.insert(to.end(),  evm_contract.begin(), evm_contract.end());
 
         // Prepare Solidity function call (function signature + arguments)
-        std::vector<uint8_t> data;
-        std::vector<uint8_t> request_id_bs = intx::to_byte_string(request_id);
-        std::vector<uint8_t> decimals_bs = pad(intx::to_byte_string(uint256_t(symbol.precision())), 32, true);
-        request_id_bs.insert(request_id_bs.begin(),(16 - request_id_bs.size()), 0);
         auto fnsig = toBin(EVM_SIGN_REGISTRATION_SIGNATURE);
+        std::vector<uint8_t> data;
+        std::vector<uint8_t> request_id_bs = pad(intx::to_byte_string(request_id), 16, true);
+        std::vector<uint8_t> decimals_bs = pad(intx::to_byte_string(uint256_t(symbol.precision())), 32, true);
         data.insert(data.end(), fnsig.begin(), fnsig.end());
+        // Add argument integers
         data.insert(data.end(), request_id_bs.begin(), request_id_bs.end());
         data.insert(data.end(), decimals_bs.begin(), decimals_bs.end());
-        // TODO: Convert & add antelope symbol.code().raw() & token->issuer
+        // Add argument strings
+        insertElementPosition(&data, 160); // base position (depends on previous arguments ^ but factor of 32)
+        insertElementPosition(&data, 224); // +64b (= length prefix + string)
+        insertElementPosition(&data, 288); // +64b (= length prefix + string)
+        insertString(&data, account.value, account.to_string().length());
+        insertString(&data, token->issuer.value, token->issuer.to_string().length());
+        insertString(&data, symbol.code().raw(), symbol.code().to_string().length());
 
+        // Print it
+        auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
+        std::vector<uint8_t> raw;
+        raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
+        print(bin2hex(raw));
         // Send signRegistrationRequest call to EVM using eosio.evm
-        action(
-            permission_level {get_self(), "active"_n},
-            EVM_SYSTEM_CONTRACT,
-            "raw"_n,
-            std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
-        ).send();
+        //action(
+        //    permission_level {get_self(), "active"_n},
+        //    EVM_SYSTEM_CONTRACT,
+        //    "raw"_n,
+        //    std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
+        //).send();
     };
 }

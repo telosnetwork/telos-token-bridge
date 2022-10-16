@@ -8,7 +8,7 @@ import {IERC20Bridgeable} from "./IERC20Bridgeable.sol";
 
 contract PairBridgeRegister is Ownable {
     event  RegistrationRequested(uint request_id, address requestor, address indexed token, string symbol, string name);
-    event  RegistrationRequestSigned(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
+    event  RegistrationRequestSigned(uint request_id, address indexed token, string antelope_account, string antelope_symbol, string evm_symbol, string evm_name);
     event  RegistrationRequestApproved(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  RegistrationRequestDeleted(uint request_id, address indexed token, string antelope_account);
     event  PairPaused(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
@@ -139,7 +139,7 @@ contract PairBridgeRegister is Ownable {
 
         // Add a token pair registration request
         requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, "", "", "", evm_symbol, evm_name ));
-        emit RegistrationRequested(request_id, msg.sender, address(token), symbol, name);
+        emit RegistrationRequested(request_id, msg.sender, address(token), evm_symbol, evm_name);
         request_id++;
         request_counts[msg.sender]++;
         return (request_id - 1); // Owner needs that ID to sign from Antelope next
@@ -149,13 +149,16 @@ contract PairBridgeRegister is Ownable {
     function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_issuer_name, string calldata _antelope_symbol) external onlyBridge {
         _removeOutdatedRegistrationRequests();
         require(_antelopeTokenPairExists(_antelope_account_name) == false, "Antelope token already in a pair");
+        require(_isEosioName(_antelope_symbol), "Symbol must be an eosio name");
+        require(_isEosioName(_antelope_issuer_name), "Issuer must be an eosio name");
+        require(_isEosioName(_antelope_account_name), "Account must be an eosio name");
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                requests[i].antelope_account_name = _antelope_account_name;
-               requests[i].antelope_symbol = _antelope_symbol;
+               requests[i].antelope_symbol_name = _antelope_symbol;
                requests[i].antelope_issuer_name = _antelope_issuer_name;
                requests[i].antelope_decimals = _antelope_decimals;
-               emit RegistrationRequestSigned(requests[i].id, requests[i].evm_address,  _antelope_account_name, _antelope_name, requests[i].evm_symbol, requests[i].evm_name);
+               emit RegistrationRequestSigned(requests[i].id, requests[i].evm_address,  _antelope_account_name, _antelope_symbol, requests[i].evm_symbol, requests[i].evm_name);
                return;
             }
         }
@@ -197,7 +200,7 @@ contract PairBridgeRegister is Ownable {
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
                require(requests[i].antelope_decimals > 0, "Request not signed by Antelope");
-               pairs.push(Pair(true, pair_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_account_name, requests[i].antelope_name, requests[i].antelope_symbol,  requests[i].evm_symbol, requests[i].evm_name));
+               pairs.push(Pair(true, pair_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_issuer_name, requests[i].antelope_account_name, requests[i].antelope_symbol_name,  requests[i].evm_symbol, requests[i].evm_name));
                emit PairAdded(pair_id, requests[i].evm_address, requests[i].evm_symbol, requests[i].evm_name, requests[i].antelope_account_name);
                requests[i] = requests[requests.length - 1];
                requests.pop();
@@ -209,13 +212,12 @@ contract PairBridgeRegister is Ownable {
     }
 
     // TOKEN   ================================================================ >
-
     // Let owner, the prods.evm EVM address, add pairs
-    function addPair (IERC20Bridgeable evm_token, uint8 antelope_decimals, string calldata antelope_account_name, string calldata antelope_name) external onlyOwner returns(uint) {
+    function addPair (IERC20Bridgeable evm_token, uint8 antelope_decimals, string calldata antelope_issuer_name, string calldata antelope_account_name, string calldata antelope_name) external onlyOwner returns(uint) {
         uint8 evm_decimals = evm_token.decimals();
         string memory evm_symbol = evm_token.symbol();
         string memory evm_name = evm_token.name();
-        pairs.push(Pair(true, pair_id, address(evm_token), evm_decimals, antelope_decimals, antelope_account_name, antelope_name, symbol, name));
+        pairs.push(Pair(true, pair_id, address(evm_token), evm_decimals, antelope_decimals, antelope_issuer_name, antelope_account_name, antelope_name, evm_symbol, evm_name));
         emit PairAdded(pair_id, address(evm_token), evm_symbol, evm_name, antelope_account_name);
         pair_id++;
         return (pair_id - 1);
@@ -248,6 +250,13 @@ contract PairBridgeRegister is Ownable {
     }
 
     // UTILS   ================================================================ >
+    function _isEosioName(string calldata text) internal view returns(bool) {
+        if(bytes(text).length > 12){
+            return false;
+        }
+        // Todo: check admitted characters
+        return true;
+    }
     function _isERC20Bridgeable(IERC20Bridgeable token) internal view returns(bool) {
         try token.supportsInterface(0x01ffc9a7) {
             return true;
