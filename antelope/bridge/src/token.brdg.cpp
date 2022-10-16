@@ -323,16 +323,14 @@ namespace evm_bridge
         // Prepare Solidity function call (function signature + arguments)
         auto fnsig = toBin(EVM_SIGN_REGISTRATION_SIGNATURE);
         std::vector<uint8_t> data;
-        std::vector<uint8_t> request_id_bs = pad(intx::to_byte_string(request_id), 16, true);
         std::vector<uint8_t> decimals_bs = pad(intx::to_byte_string(uint256_t(symbol.precision())), 32, true);
+        std::vector<uint8_t> request_id_bs = pad(intx::to_byte_string(request_id), 16, true);
         data.insert(data.end(), fnsig.begin(), fnsig.end());
         // Add argument integers
         data.insert(data.end(), request_id_bs.begin(), request_id_bs.end());
         data.insert(data.end(), decimals_bs.begin(), decimals_bs.end());
         // Add argument strings
-        insertElementPosition(&data, 160); // base position (depends on previous arguments ^ but factor of 32)
-        insertElementPosition(&data, 224); // +64b (= length prefix + string)
-        insertElementPosition(&data, 288); // +64b (= length prefix + string)
+        insertElementPositions(&data, 160, 224, 288);
         insertString(&data, account.value, account.to_string().length());
         insertString(&data, token->issuer.value, token->issuer.to_string().length());
         insertString(&data, symbol.code().raw(), symbol.code().to_string().length());
@@ -347,7 +345,7 @@ namespace evm_bridge
         //    permission_level {get_self(), "active"_n},
         //    EVM_SYSTEM_CONTRACT,
         //    "raw"_n,
-        //    std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
+        //    std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
         //).send();
     };
 }

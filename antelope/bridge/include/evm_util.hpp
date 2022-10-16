@@ -163,24 +163,23 @@ namespace evm_bridge
 
       return result;
   }
-  static inline void insertElementPosition(std::vector<uint8_t> *data, uint256_t position){
-        std::vector<uint8_t>string_position_bs = pad(intx::to_byte_string(position), 32, true);
+
+  template <typename T, typename U>
+  static inline void insertElementPositions(std::vector<T> *data, U position){
+        std::vector<T> string_position_bs = pad(intx::to_byte_string(position), 32, true);
         data->insert(data->end(), string_position_bs.begin(), string_position_bs.end());
   }
+
+  template <typename T, typename... Args>
+  static inline void insertElementPositions(std::vector<T> *data, Args... args){
+    (insertElementPositions(data, args), ...);
+  }
+
   static inline void insertString(std::vector<uint8_t> *data, uint64_t value, uint64_t length){
         std::vector<uint8_t> string_bs = pad(intx::to_byte_string(value), 32, false);
         std::vector<uint8_t> string_size = pad(intx::to_byte_string(length), 32, true);
         data->insert(data->end(), string_size.begin(), string_size.end());
         data->insert(data->end(), string_bs.begin(), string_bs.end());
-  }
-  static inline void prefixTupleArrayElement(std::vector<uint8_t> *data){
-        insertElementPosition(data, 160);
-        insertElementPosition(data, 224);
-  }
-
-  static inline void prefixTupleArray(std::vector<uint8_t> *data, uint64_t total, uint256_t position){
-        insertElementPosition(data, position);
-        insertElementPosition(data, uint256_t(total));
   }
 
   /**
