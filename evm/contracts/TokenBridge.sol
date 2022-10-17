@@ -158,7 +158,10 @@ contract TokenBridge is Ownable {
         require(bytes(memo).length < 257, "Memo cannot be over 256 characters");
         require(amount >= min_amount, "Minimum amount is not reached");
 
-        // Check token is registered
+        // Check token has bridge address
+        require(token.bridge() == address(this), "The token bridge address must be set to this contract");
+
+        // Check token is registered & active
         IPairBridgeRegister.Pair memory pairData = pair_register.getPair(address(token));
         require(pairData.active, "Bridging is paused for token");
 

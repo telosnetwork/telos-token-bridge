@@ -165,21 +165,34 @@ namespace evm_bridge
   }
 
   template <typename T, typename U>
-  static inline void insertElementPositions(std::vector<T> *data, U position){
+  static inline void insertElementPosition(std::vector<T> *data, U position){
         std::vector<T> string_position_bs = pad(intx::to_byte_string(position), 32, true);
         data->insert(data->end(), string_position_bs.begin(), string_position_bs.end());
   }
 
   template <typename T, typename... Args>
   static inline void insertElementPositions(std::vector<T> *data, Args... args){
-    (insertElementPositions(data, args), ...);
+    (insertElementPosition(data, args), ...);
   }
 
-  static inline void insertString(std::vector<uint8_t> *data, uint64_t value, uint64_t length){
-        std::vector<uint8_t> string_bs = pad(intx::to_byte_string(value), 32, false);
-        std::vector<uint8_t> string_size = pad(intx::to_byte_string(length), 32, true);
+
+  template <typename T>
+  static inline void insertString(std::vector<T> *data, std::string value, uint64_t length){
+        std::vector<T> string_size = pad(intx::to_byte_string(length), 32, true);
+        std::vector<T> str(value.begin(), value.end());
+        str = pad(str, 32, false);
         data->insert(data->end(), string_size.begin(), string_size.end());
-        data->insert(data->end(), string_bs.begin(), string_bs.end());
+        data->insert(data->end(), str.begin(), str.end());
+  }
+
+  template <typename T>
+  static inline void insertName(std::vector<T> *data, uint64_t value, uint64_t length){
+        insertString(data, eosio::name(value).to_string(), length);
+  }
+
+  template <typename T>
+  static inline void insertName(std::vector<T> *data, eosio::name value, uint64_t length){
+        insertString(data, value.to_string(), length);
   }
 
   /**
