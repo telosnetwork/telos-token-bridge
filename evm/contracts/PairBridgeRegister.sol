@@ -12,7 +12,7 @@ contract PairBridgeRegister is Ownable {
     event  RegistrationRequestApproved(uint request_id, address indexed token, string antelope_account, string antelope_name, string symbol, string name);
     event  RegistrationRequestDeleted(uint request_id, address indexed token, string antelope_account);
     event  PairPaused(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
-    event  PairAdded(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
+    event  PairAdded(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account, string antelope_symbol);
     event  PairUnpaused(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
     event  PairDeleted(uint pair_id, address indexed evm_token, string evm_symbol, string evm_name, string antelope_account);
 
@@ -150,7 +150,6 @@ contract PairBridgeRegister is Ownable {
         _removeOutdatedRegistrationRequests();
         require(_antelopeTokenPairExists(_antelope_account_name) == false, "Antelope token already in a pair");
         require(_isEosioName(_antelope_symbol), "Symbol must be an eosio name");
-        require(_isEosioName(_antelope_issuer_name), "Issuer must be an eosio name");
         require(_isEosioName(_antelope_account_name), "Account must be an eosio name");
         for(uint i = 0;i<requests.length;i++){
             if(requests[i].id == id){
@@ -201,7 +200,7 @@ contract PairBridgeRegister is Ownable {
             if(requests[i].id == id){
                require(requests[i].antelope_decimals > 0, "Request not signed by Antelope");
                pairs.push(Pair(true, pair_id, requests[i].evm_address, requests[i].evm_decimals, requests[i].antelope_decimals, requests[i].antelope_issuer_name, requests[i].antelope_account_name, requests[i].antelope_symbol_name,  requests[i].evm_symbol, requests[i].evm_name));
-               emit PairAdded(pair_id, requests[i].evm_address, requests[i].evm_symbol, requests[i].evm_name, requests[i].antelope_account_name);
+               emit PairAdded(pair_id, requests[i].evm_address, requests[i].evm_symbol, requests[i].evm_name, requests[i].antelope_account_name, requests[i].antelope_symbol_name);
                requests[i] = requests[requests.length - 1];
                requests.pop();
                pair_id++;
@@ -212,25 +211,22 @@ contract PairBridgeRegister is Ownable {
     }
 
     // TOKEN   ================================================================ >
-    // Let owner, the prods.evm EVM address, add pairs
-    function addPair (IERC20Bridgeable evm_token, uint8 antelope_decimals, string calldata antelope_issuer_name, string calldata antelope_account_name, string calldata antelope_name) external onlyOwner returns(uint) {
+    function addPair (IERC20Bridgeable evm_token, uint8 antelope_decimals, string calldata antelope_issuer_name, string calldata antelope_account_name, string calldata antelope_symbol_name) external onlyOwner returns(uint) {
         uint8 evm_decimals = evm_token.decimals();
         string memory evm_symbol = evm_token.symbol();
         string memory evm_name = evm_token.name();
-        pairs.push(Pair(true, pair_id, address(evm_token), evm_decimals, antelope_decimals, antelope_issuer_name, antelope_account_name, antelope_name, evm_symbol, evm_name));
-        emit PairAdded(pair_id, address(evm_token), evm_symbol, evm_name, antelope_account_name);
+        pairs.push(Pair(true, pair_id, address(evm_token), evm_decimals, antelope_decimals, antelope_issuer_name, antelope_account_name, antelope_symbol_name, evm_symbol, evm_name));
+        emit PairAdded(pair_id, address(evm_token), evm_symbol, evm_name, antelope_account_name, antelope_symbol_name);
         pair_id++;
         return (pair_id - 1);
     }
 
-    // Let owner, the prods.evm EVM address, un-pause pairs
     function unpausePair (uint id) external onlyOwner {
         Pair storage token = _getPair(id);
         token.active = true;
         emit PairUnpaused(id, token.evm_address, token.evm_symbol, token.evm_name, token.antelope_account_name);
     }
 
-    // Let owner, the prods.evm EVM address, pause pairs
     function pausePair (uint id) external onlyOwner {
        Pair storage token = _getPair(id);
        token.active = false;

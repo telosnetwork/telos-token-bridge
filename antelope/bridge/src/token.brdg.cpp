@@ -303,6 +303,7 @@ namespace evm_bridge
         for(uint256_t i = 0; i < pair_array_length->value; i=i+1){
             const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 7, 10, pair_array_length->value - i));
             // Todo: check antelope account too ?
+            print(name(decodeHex(bin2hex(intx::to_byte_string(symbol_name->value)))).to_string());
             if(name(decodeHex(bin2hex(intx::to_byte_string(symbol_name->value)))).value == symbol.code().raw()){
                 check(false, "The token is already registered");
             }
@@ -341,10 +342,10 @@ namespace evm_bridge
         insertString(&data, symbol.code().to_string(), symbol.code().to_string().length());
 
         // Print it
-        auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
-        std::vector<uint8_t> raw;
-        raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
-        print(bin2hex(raw));
+        //auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
+        //std::vector<uint8_t> raw;
+        //raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
+        //print(bin2hex(raw));
 
         // Send signRegistrationRequest call to EVM using eosio.evm
         action(
