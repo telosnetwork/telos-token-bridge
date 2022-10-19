@@ -8,44 +8,31 @@
 #include <eosio/crypto.hpp>
 #include <eosio/transaction.hpp>
 
-// EXTERNAL
-#include <intx/base.hpp>
-#include <rlp/rlp.hpp>
-#include <ecc/uECC.c>
-#include <keccak256/k.c>
-#include <boost/multiprecision/cpp_int.hpp>
-
 // TELOS EVM
-#include <escrow_constants.hpp>
-#include <evm_util.hpp>
-#include <datastream.hpp>
-#include <evm_bridge_tables.hpp>
-#include <escrow_tables.hpp>
-
-#define EVM_SYSTEM_CONTRACT name("eosio.evm")
+#include <constants.hpp>
+#include <tables.hpp>
 
 using namespace std;
 using namespace eosio;
-using namespace evm_bridge;
-using namespace evm_util;
+using namespace escrow;
 
-namespace evm_bridge
+namespace escrow
 {
-    class [[eosio::contract("escrow.brdg")]] escrowbridge : public contract {
+    class [[eosio::contract("escrow.brdg")]] escrow : public contract {
         public:
             using contract::contract;
-            escrowbridge(name self, name code, datastream<const char*> ds) : contract(self, code, ds), config_bridge(self, self.value) { };
-            ~escrowbridge() {};
+            escrow(name self, name code, datastream<const char*> ds) : contract(self, code, ds), config(self, self.value) { };
+            ~escrow() {};
 
             //======================== Admin actions ========================
             // intialize the contract
-            ACTION init(eosio::checksum160 evm_contract, string version, name admin);
+            ACTION init(eosio::name bridge, string version, name admin);
 
             //set the contract version
             ACTION setversion(string new_version);
 
-            //set the bridge evm address
-            ACTION setevmctc(eosio::checksum160 new_contract);
+            //set the bridge
+            ACTION setbridge(eosio::name bridge);
 
             //set new contract admin
             ACTION setadmin(name new_admin);
@@ -60,6 +47,6 @@ namespace evm_bridge
                 }
             #endif
 
-            config_singleton_bridge config_bridge;
+            config_singleton config;
     };
 }

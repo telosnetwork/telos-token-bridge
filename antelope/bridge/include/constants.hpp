@@ -27,6 +27,6 @@ namespace evm_bridge
   static constexpr auto EVM_SIGN_REGISTRATION_SIGNATURE = "ec0aacf2";
   static constexpr uint256_t STORAGE_BRIDGE_REQUEST_INDEX = 4;
   static constexpr uint256_t STORAGE_BRIDGE_REFUND_INDEX = 5;
-  static constexpr uint256_t STORAGE_REGISTER_REQUEST_INDEX = 3;
-  static constexpr uint256_t STORAGE_REGISTER_PAIR_INDEX = 2;
+  static constexpr uint256_t STORAGE_REGISTER_REQUEST_INDEX = 4;
+  static constexpr uint256_t STORAGE_REGISTER_PAIR_INDEX = 3;
 }

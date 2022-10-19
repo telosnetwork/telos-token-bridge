@@ -9,7 +9,8 @@ namespace evm_bridge
 {
     //======================== Admin actions ==========================
     // Initialize the contract
-    ACTION tokenbridge::init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, std::string version, eosio::name admin){
+    [[eosio::action]]
+    void tokenbridge::init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, std::string version, eosio::name admin){
         // Authenticate
         require_auth(get_self());
 
@@ -38,7 +39,8 @@ namespace evm_bridge
     };
 
     // Set the contract version
-    ACTION tokenbridge::setversion(std::string new_version){
+    [[eosio::action]]
+    void tokenbridge::setversion(std::string new_version){
         // Authenticate
         require_auth(config_bridge.get().admin);
 
@@ -50,7 +52,8 @@ namespace evm_bridge
     };
 
     // Set the  evm bridge & evm register addresses
-    ACTION tokenbridge::setevmctc(eosio::checksum160 bridge_address, eosio::checksum160 register_address){
+    [[eosio::action]]
+    void tokenbridge::setevmctc(eosio::checksum160 bridge_address, eosio::checksum160 register_address){
         // Authenticate
         require_auth(config_bridge.get().admin);
 
@@ -71,7 +74,8 @@ namespace evm_bridge
     };
 
     // Set new contract admin
-    ACTION tokenbridge::setadmin(eosio::name new_admin){
+    [[eosio::action]]
+    void tokenbridge::setadmin(eosio::name new_admin){
         // Authenticate
         require_auth(config_bridge.get().admin);
 
@@ -86,47 +90,59 @@ namespace evm_bridge
 
     //======================== Token Bridge actions ========================
     // Trustless bridge to EVM
-    [[eosio::on_notify("eosio.token::transfer")]]
-    ACTION tokenbridge::bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo)
+    [[eosio::on_notify("*::transfer")]]
+    void tokenbridge::bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo)
     {
-        // Check auth (???)
-        require_auth(from);
+        // Check transfer is ok for bridging
+        check(from != get_self(), "Sender is this contract");
+        check(to == get_self(), "Recipient is not this contract");
+        check(memo.length() == 42, "Memo needs to contain the 42 character EVM recipient address");
+        // Check amount
+        uint256_t amount = uint256_t(quantity.amount);
+        check(amount >= 1, "Minimum amount is not reached");
 
         // Open config singleton
         auto conf = config_bridge.get();
         auto evm_conf = config.get();
+
+        // Find the EVM account of this contract
+        account_table _accounts(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value);
+        auto accounts_byaccount = _accounts.get_index<"byaccount"_n>();
+        auto evm_account = accounts_byaccount.require_find(get_self().value, "EVM account not found for token.brdg");
 
         // Define EVM Account State table with EVM register contract scope
         account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
         auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
 
         // Get array slot to find Pair pairs[] array length
-        auto pair_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_PAIR_INDEX));
-        auto pair_array_length = register_account_states_bykey.require_find(pair_storage_key, "No pairs found");
+        auto pair_storage_key = toChecksum256(STORAGE_REGISTER_PAIR_INDEX);
+        auto pair_array_length = register_account_states_bykey.require_find(pair_storage_key, "No pairs have been found in the EVM register");
         auto pair_array_slot = checksum256ToValue(keccak_256(pair_storage_key.extract_as_byte_array()));
 
         // Get each member of the Pair pairs[] array's antelope_account and compare to get the EVM address
-        uint256_t pair_evm_address = 0;
+        std::string pair_evm_address = "";
+        vector<uint8_t> pair_evm_address_bs;
         for(uint256_t i = 0; i < pair_array_length->value; i=i+1){
-            const uint256_t position = pair_array_length->value - i;
-            const auto account_name = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 5, 8, position));
-            // TODO: convert account_name to eosio name
-            if(name(decodeHex(bin2hex(intx::to_byte_string(account_name->value))))  == get_first_receiver()){
-                const auto pair_active = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 0, 8, position));
-                // TODO: convert pair_active to boolean
-                check(pair_active->value == uint256_t(0), "The related token pair is paused");
-                const auto pair_evm_address_stored = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 1, 8, position));
-                pair_evm_address = pair_evm_address_stored->value;
+            // Get the account name string from EVM Storage, this works only for < 32bytes string which any EOSIO name should be (< 13 chars)
+            const auto account_name_checksum = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 4, 10, i));
+            eosio::name account_name = parseNameFromStorage(account_name_checksum->value);
+            if(account_name.value  == get_first_receiver().value){
+                const auto pair_active = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 0, 10, i));
+                check(pair_active->value == uint256_t(1), "This token's pair is paused");
+                const auto pair_evm_address_stored = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 2, 10, i));
+                pair_evm_address_bs = intx::to_byte_string(pair_evm_address_stored->value);
+                reverse(pair_evm_address_bs.begin(),pair_evm_address_bs.end());
+                pair_evm_address_bs.resize(20);
+                reverse(pair_evm_address_bs.begin(),pair_evm_address_bs.end());
+                print(bin2hex(toBin(EVM_BRIDGE_SIGNATURE)));
+                print(" ");
+                print(bin2hex(pair_evm_address_bs));
+                print(" ");
             }
         }
-        check(pair_evm_address > 0, "this eosio.token has no pair registered on this bridge");
+        check(pair_evm_address_bs.size() > 0, "This token has no pair registered on this bridge");
 
         // TODO: lock the eosio.token of user (??? >>> escrow utility ?)
-
-        // Find the EVM account of this contract
-        account_table _accounts(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value);
-        auto accounts_byaccount = _accounts.get_index<"byaccount"_n>();
-        auto account = accounts_byaccount.require_find(get_self().value, "Account not found");
 
         // Prepare address for EVM Bridge call
         auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
@@ -135,23 +151,45 @@ namespace evm_bridge
 
         // Prepare EVM function signature & arguments
         std::vector<uint8_t> data;
-        auto fnsig = toBin(EVM_BRIDGE_SIGNATURE);
-        data.insert(data.end(), fnsig.begin(), fnsig.end());
-        // TODO: insert token EVM address
-        // TODO: insert receiver EVM address
-        auto amount_bs = intx::to_byte_string(uint256_t(quantity.amount));
+        auto fnsig = checksum256ToValue(eosio::checksum256(toBin(EVM_BRIDGE_SIGNATURE)));
+        vector<uint8_t> fnsig_bs = intx::to_byte_string(fnsig);
+        fnsig_bs.resize(16);
+        data.insert(data.end(), fnsig_bs.begin(), fnsig_bs.end());
+        data.insert(data.end(), pair_evm_address_bs.begin(), pair_evm_address_bs.end());
+
+        // Receiver EVM address from memo
+        memo.replace(0, 2, ""); // remove the Ox
+        auto receiver_ba = pad160(eosio::checksum160( toBin((memo)))).extract_as_byte_array();
+        std::vector<uint8_t> receiver(receiver_ba.begin(), receiver_ba.end());
+        receiver = pad(receiver, 32, true);
+        data.insert(data.end(),  receiver.begin(), receiver.end());
+
+        // Amount
+        vector<uint8_t> amount_bs = pad(intx::to_byte_string(amount), 32, true);
         data.insert(data.end(),  amount_bs.begin(), amount_bs.end());
+
+        // Sender
+        std::string sender = from.to_string();
+        insertElementPositions(&data, 128); // Our string position
+        insertString(&data, sender, sender.length());
+
+        // Print it
+        //auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
+        //std::vector<uint8_t> raw;
+        //raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
+        //print(bin2hex(raw));
 
         // call TokenBridge.bridgeTo(address token, address receiver, uint amount) on EVM using eosio.evm
         action(
             permission_level {get_self(), "active"_n},
             EVM_SYSTEM_CONTRACT,
             "raw"_n,
-            std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
+            std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
         ).send();
     };
 
-    ACTION tokenbridge::refundnotify()
+    [[eosio::action]]
+    void tokenbridge::refundnotify()
     {
         // Open config singletons
         auto conf = config_bridge.get();
@@ -205,7 +243,8 @@ namespace evm_bridge
 
     }
     // Trustless bridge from EVM
-    ACTION tokenbridge::reqnotify()
+    [[eosio::action]]
+    void tokenbridge::reqnotify()
     {
         // Open config singleton
         auto conf = config_bridge.get();
@@ -266,7 +305,8 @@ namespace evm_bridge
 
     // Verify token & sign EVM registration request
     // Todo:: replace uint64_t by uint256_t request_id
-    ACTION tokenbridge::signregpair(eosio::checksum160 evm_address, eosio::name account, eosio::symbol symbol, uint64_t request_id)
+    [[eosio::action]]
+    void tokenbridge::signregpair(eosio::checksum160 evm_address, eosio::name account, eosio::symbol symbol, uint64_t request_id)
     {
 
         // Open config singleton
@@ -340,12 +380,6 @@ namespace evm_bridge
         insertString(&data, account.to_string(), account.to_string().length());
         insertString(&data, token->issuer.to_string(), token->issuer.to_string().length());
         insertString(&data, symbol.code().to_string(), symbol.code().to_string().length());
-
-        // Print it
-        //auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
-        //std::vector<uint8_t> raw;
-        //raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
-        //print(bin2hex(raw));
 
         // Send signRegistrationRequest call to EVM using eosio.evm
         action(

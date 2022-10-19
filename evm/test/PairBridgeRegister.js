@@ -68,7 +68,7 @@ describe("PairBridgeRegister Contract", function () {
         it("Should remove request when new request after " + REQUEST_VALIDITY + " seconds" , async function () {
             expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.requests(0)).to.not.be.reverted;
-            await ethers.provider.send('evm_increaseTime', [31]);
+            await ethers.provider.send('evm_increaseTime', [REQUEST_VALIDITY + 1]);
             expect(await register.requestRegistration(token.address)).to.emit('RegistrationRequested');
             await expect(register.requests(1)).to.be.reverted;
         });

@@ -37,8 +37,8 @@ contract PairBridgeRegister is Ownable {
         address sender;
         address evm_address;
         uint8 evm_decimals;
-        uint8 antelope_decimals;
         uint timestamp;
+        uint8 antelope_decimals;
         string antelope_issuer_name;
         string antelope_account_name;
         string antelope_symbol_name;
@@ -138,7 +138,7 @@ contract PairBridgeRegister is Ownable {
         string memory evm_name = token.name();
 
         // Add a token pair registration request
-        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, uint8(0), block.timestamp, "", "", "", evm_symbol, evm_name ));
+        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, block.timestamp, uint8(0), "", "", "", evm_symbol, evm_name ));
         emit RegistrationRequested(request_id, msg.sender, address(token), evm_symbol, evm_name);
         request_id++;
         request_counts[msg.sender]++;
@@ -151,7 +151,7 @@ contract PairBridgeRegister is Ownable {
         require(_antelopeTokenPairExists(_antelope_account_name) == false, "Antelope token already in a pair");
         require(_isEosioName(_antelope_symbol), "Symbol must be an eosio name");
         require(_isEosioName(_antelope_account_name), "Account must be an eosio name");
-        for(uint i = 0;i<requests.length;i++){
+        for(uint i = 0; i < requests.length ;i++){
             if(requests[i].id == id){
                requests[i].antelope_account_name = _antelope_account_name;
                requests[i].antelope_symbol_name = _antelope_symbol;

@@ -39,23 +39,23 @@ namespace evm_bridge
 
             //======================== Admin actions ========================
             // intialize the contract
-            ACTION init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, std::string version, eosio::name admin);
+            [[eosio::action]] void init(eosio::checksum160 bridge_address, eosio::checksum160 register_address, std::string version, eosio::name admin);
 
             // set the contract version
-            ACTION setversion(std::string new_version);
+            [[eosio::action]] void setversion(std::string new_version);
 
             // set the bridge & register evm addresses
-            ACTION setevmctc(eosio::checksum160 bridge_address, eosio::checksum160 register_address);
+            [[eosio::action]] void setevmctc(eosio::checksum160 bridge_address, eosio::checksum160 register_address);
 
             // set new contract admin
-            ACTION setadmin(eosio::name new_admin);
+            [[eosio::action]] void setadmin(eosio::name new_admin);
 
             //======================== Token bridge actions ========================
 
-            ACTION refundnotify();
-            ACTION reqnotify();
-            ACTION bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo);
-            ACTION signregpair(eosio::checksum160 evm_address, eosio::name account, eosio::symbol symbol, uint64_t request_id);
+            [[eosio::action]] void refundnotify();
+            [[eosio::action]] void reqnotify();
+            [[eosio::action]] void signregpair(eosio::checksum160 evm_address, eosio::name account, eosio::symbol symbol, uint64_t request_id);
+            [[eosio::on_notify("*::transfer")]] void bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo);
 
             config_singleton_bridge config_bridge;
             config_singleton_evm config;

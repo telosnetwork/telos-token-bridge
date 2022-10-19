@@ -138,11 +138,11 @@ namespace evm_bridge
     return vector;
   }
 
-  inline const eosio::checksum256 getArrayMemberSlot(uint256_t array_slot, uint256_t position, uint256_t property_count, uint256_t array_length){
-        return toChecksum256(array_slot + position + (property_count * (array_length - uint256_t(1))));
+  inline const eosio::checksum256 getArrayMemberSlot(uint256_t array_slot, uint256_t position, uint256_t property_count, uint256_t i){
+        return toChecksum256(array_slot + position + (property_count * (i)));
   }
 
-  inline unsigned char decodeHex(char c)
+  static inline unsigned char decodeHex(char c)
   {
       if ('0' <= c && c <= '9') { return c      - '0'; }
       if ('a' <= c && c <= 'f') { return c + 10 - 'a'; }
@@ -150,7 +150,7 @@ namespace evm_bridge
       return 0;
   }
 
-  inline std::string decodeHex(std::string const & s)
+  static inline std::string decodeHex(std::string const & s)
   {
       std::string result;
       result.reserve(s.size() / 2);
@@ -162,6 +162,14 @@ namespace evm_bridge
       }
 
       return result;
+  }
+
+  // Parses an Antelope name from an EVM Storage string (meaning less than < 32bytes only)
+  inline eosio::name parseNameFromStorage(const uint256_t checksum){
+    const size_t length = shrink<size_t>(checksum.lo) / 2; // get length from last 32 bytes as size_t
+    std::vector<uint8_t> bs = intx::to_byte_string(checksum.hi); // get first 32 bytes
+    bs.resize(length); // remove trailing 0
+    return eosio::name(decodeHex(bin2hex(bs))); // convert to name
   }
 
   template <typename T, typename U>
