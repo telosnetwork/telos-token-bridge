@@ -20,7 +20,7 @@ On Telos, the EVM runs inside one eosio.evm smart contract on our Antelope nativ
 
 ### 1. Pair registration
 
-ERC20Bridgeable token owners can use our PairRegister to request a pair registration on EVM
+[ERC20Bridgeable](https://github.com/telosnetwork/erc20-bridgeable) token owners can use our PairRegister to request a pair registration on EVM
 
 ```
 const { BigNumber, ethers, utils } = require("ethers");
