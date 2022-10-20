@@ -20,7 +20,7 @@ namespace evm_bridge
   static constexpr eosio::name ESCROW = eosio::name("escrow.brdg");
   static constexpr eosio::name EVM_SYSTEM_CONTRACT = eosio::name("eosio.evm");
   static constexpr eosio::name TOKEN_CONTRACT = eosio::name("eosio.token");
-  static constexpr uint256_t BASE_GAS = 150000;
+  static constexpr uint256_t BASE_GAS = 250000;
   static constexpr auto EVM_SUCCESS_CALLBACK_SIGNATURE = "0fbc79cd";
   static constexpr auto EVM_REFUND_CALLBACK_SIGNATURE = "dc2fdf9f";
   static constexpr auto EVM_BRIDGE_SIGNATURE = "7d056de7";

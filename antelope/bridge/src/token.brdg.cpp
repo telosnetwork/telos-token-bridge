@@ -134,15 +134,10 @@ namespace evm_bridge
                 reverse(pair_evm_address_bs.begin(),pair_evm_address_bs.end());
                 pair_evm_address_bs.resize(20);
                 reverse(pair_evm_address_bs.begin(),pair_evm_address_bs.end());
-                print(bin2hex(toBin(EVM_BRIDGE_SIGNATURE)));
-                print(" ");
-                print(bin2hex(pair_evm_address_bs));
-                print(" ");
+                // TODO: get EVM decimals to use below for amount calculation
             }
         }
         check(pair_evm_address_bs.size() > 0, "This token has no pair registered on this bridge");
-
-        // TODO: lock the eosio.token of user (??? >>> escrow utility ?)
 
         // Prepare address for EVM Bridge call
         auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
@@ -165,19 +160,13 @@ namespace evm_bridge
         data.insert(data.end(),  receiver.begin(), receiver.end());
 
         // Amount
-        vector<uint8_t> amount_bs = pad(intx::to_byte_string(amount), 32, true);
+        vector<uint8_t> amount_bs = pad(intx::to_byte_string(amount * pow (10, 18)), 32, true);
         data.insert(data.end(),  amount_bs.begin(), amount_bs.end());
 
         // Sender
         std::string sender = from.to_string();
         insertElementPositions(&data, 128); // Our string position
         insertString(&data, sender, sender.length());
-
-        // Print it
-        //auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
-        //std::vector<uint8_t> raw;
-        //raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
-        //print(bin2hex(raw));
 
         // call TokenBridge.bridgeTo(address token, address receiver, uint amount) on EVM using eosio.evm
         action(
@@ -253,7 +242,7 @@ namespace evm_bridge
         // Find the EVM account of this contract
         account_table _accounts(EVM_SYSTEM_CONTRACT, EVM_SYSTEM_CONTRACT.value);
         auto accounts_byaccount = _accounts.get_index<"byaccount"_n>();
-        auto account = accounts_byaccount.require_find(get_self().value, "Account not found");
+        auto evm_account = accounts_byaccount.require_find(get_self().value, "EVM account not found for token.brdg");
 
         // Todo: clean out old processed requests
 
@@ -268,38 +257,52 @@ namespace evm_bridge
 
         // Prepare address for callback
         auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
-        std::vector<uint8_t> to;
-        to.insert(to.end(), evm_contract.begin(), evm_contract.end());
+        std::vector<uint8_t> evm_to;
+        evm_to.insert(evm_to.end(), evm_contract.begin(), evm_contract.end());
         auto fnsig = toBin(EVM_SUCCESS_CALLBACK_SIGNATURE);
 
         for(uint256_t i = 0; i < request_array_length->value; i=i+1){
-            const uint256_t position = request_array_length->value - i;
             // TODO: parse EVM Bridge request
-            const auto request_id = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 8, position));
-            const auto account_name = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, 8, position));
-            const auto recipient = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, position));
-            const auto memo = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, position));
+            const vector<uint8_t> request_id_bs = intx::to_byte_string(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 8, i)));
+            const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, 8, i)));
+            const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i)));
+            const auto sender_address = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i));
+            const std::string memo = "Sent from tEVM via the TokenBridge by " + sender_address;
+            const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, i))->value;
 
-            bool success = false;
-            // TODO: check valid
+            // TODO: check valid request
+
             // TODO: add request to processed (???)
 
-            // TODO:: unlock & send tokens to receiver
+            // TODO: get user current balance for that token (???)
+            const quantity = amount.to_string() + " " + token_account_name;
+            // Send tokens to receiver
+            action(
+                permission_level{ get_self(), "active"_n },
+                    token_account_name,
+                    "transfer"_n,
+                    std::make_tuple(get_self(), receiver, quantity, memo)
+            ).send();
 
-            if(success){
-                // TODO: setup success callback call so request get deleted on EVM
-                std::vector<uint8_t> data;
-                data.insert(data.end(), fnsig.begin(), fnsig.end());
-                // TODO: insert the request id
+            // TODO: setup success callback call so request get deleted on EVM
+            std::vector<uint8_t> data;
+            data.insert(data.end(), fnsig.begin(), fnsig.end());
+            data.insert(data.end(), fnsig.begin(), fnsig.end());
+            // TODO: insert the request id
 
-                // Send success callback call back to EVM using eosio.evm
-                action(
-                   permission_level {get_self(), "active"_n},
-                   EVM_SYSTEM_CONTRACT,
-                   "raw"_n,
-                   std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
-                ).send();
-            }
+            // Send success callback call back to EVM using eosio.evm
+
+            // Print it
+            auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
+            std::vector<uint8_t> raw;
+            raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
+            print(bin2hex(raw));
+            //action(
+            //   permission_level {get_self(), "active"_n},
+            //   EVM_SYSTEM_CONTRACT,
+            //   "raw"_n,
+            //   std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
+            //).send();
         }
     };
 

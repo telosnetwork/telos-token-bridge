@@ -12,10 +12,11 @@ interface IPairBridgeRegister {
     address evm_address;
     uint8 evm_decimals;
     uint8 antelope_decimals;
+    string antelope_issuer_name;
     string antelope_account_name;
-    string antelope_name;
-    string symbol;
-    string name;
+    string antelope_symbol_name;
+    string evm_symbol;
+    string evm_name;
  }
  function getPair(address _token) external view returns(Pair memory);
 }
@@ -134,16 +135,16 @@ contract TokenBridge is Ownable {
      }
 
      // FROM ANTELOPE BRIDGE
-     function bridgeTo(IERC20Bridgeable token, address receiver, uint amount, string calldata sender) external onlyAntelopeBridge {
+     function bridgeTo(address token, address receiver, uint amount, string calldata sender) external onlyAntelopeBridge {
         // Get pair & check it is not paused
-        IPairBridgeRegister.Pair memory pairData = pair_register.getPair(address(token));
+        IPairBridgeRegister.Pair memory pairData = pair_register.getPair(token);
         require(pairData.active, "Bridging is paused for pair");
 
-        try token.mint(receiver, amount) {
-            emit BridgeFromAntelopeSucceeded(receiver, address(token), amount);
+        try IERC20Bridgeable(token).mint(receiver, amount) {
+            emit BridgeFromAntelopeSucceeded(receiver, token, amount);
         } catch {
             // Could not mint... Refund the Antelope tokens
-            emit BridgeFromAntelopeFailed(receiver, address(token), amount, sender);
+            emit BridgeFromAntelopeFailed(receiver, token, amount, sender);
             refunds.push(Refund(refund_id, amount, pairData.antelope_account_name, sender));
         }
      }
