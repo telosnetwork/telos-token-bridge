@@ -18,11 +18,19 @@ namespace evm_bridge {
     //======================== Tables ========================
     // Requests
     struct [[eosio::table, eosio::contract("token.brdg")]] requests {
-        bigint::checksum256 request_id;
-        EOSLIB_SERIALIZE(requests, (request_id));
-    };
+        uint64_t request_id;
+        eosio::checksum256 call_id;
+        time_point timestamp;
 
-    typedef singleton<"requests"_n, requests> request_table;
+        uint64_t primary_key() const { return request_id; };
+        eosio::checksum256 by_call_id() const { return call_id; };
+        uint64_t by_timestamp() const {return timestamp.elapsed.to_seconds();}
+
+        EOSLIB_SERIALIZE(requests, (request_id)(call_id)(timestamp));
+    };
+    typedef multi_index<name("requests"), requests,
+       eosio::indexed_by<eosio::name("bycallid"), eosio::const_mem_fun<requests, eosio::checksum256, &requests::by_call_id >>
+    >  requests_table;
 
     // Config
     struct [[eosio::table, eosio::contract("token.brdg")]] bridgeconfig {

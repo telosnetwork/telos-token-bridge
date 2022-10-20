@@ -9,6 +9,7 @@
 #include <eosio/crypto.hpp>
 #include <eosio/transaction.hpp>
 #include <eosio/asset.hpp>
+#include <eosio/system.hpp>
 
 // EXTERNAL
 #include <intx/base.hpp>

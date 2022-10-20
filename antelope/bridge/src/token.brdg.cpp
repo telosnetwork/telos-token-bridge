@@ -263,24 +263,29 @@ namespace evm_bridge
         auto fnsig = toBin(EVM_SUCCESS_CALLBACK_SIGNATURE);
 
         for(uint256_t i = 0; i < request_array_length->value; i=i+1){
-            // TODO: parse EVM Bridge request
-            const auto request_id = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 8, i));
-            const vector<uint8_t> request_id_bs = intx::to_byte_string(request_id);
-            const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, 8, i)));
-            const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i)));
-            const auto sender_address = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i));
+            const auto call_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 8, i));
+            const uint256_t call_id = (call_id_checksum != bridge_account_states_bykey.end()) ? call_id_checksum->value : uint256_t(0); // Needed because row is not set at all if the value is 0
+            const vector<uint8_t> call_id_bs = intx::to_byte_string(call_id);
+            const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, 8, i))->value);
+            const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i))->value);
+            const auto sender_address_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i));
+            std::string sender_address = "";
             const std::string memo = "Sent from tEVM via the TokenBridge by " + sender_address;
             const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, i))->value;
-            const quantity = amount.to_string() + " " + token_account_name;
+            const std::string quantity = decodeHex(bin2hex(intx::to_byte_string(amount))) + " " + token_account_name.to_string();
 
-            // TODO: Check request isn't processed
-
-            // TODO: check valid request
+            // Check request not already processing
+            auto requests_by_call_id = requests.get_index<"bycallid"_n>();
+            auto exists = requests_by_call_id.find(toChecksum256(call_id));
+            if(exists != requests_by_call_id.end()){
+                continue;
+            }
 
             // Add request to processed
             requests.emplace(get_self(), [&](auto& r) {
-                r.request_id = request_id;
-                r.timestamp = now();
+                r.request_id = requests.available_primary_key();
+                r.call_id = toChecksum256(call_id);
+                r.timestamp = current_time_point();
             });
 
             // Send tokens to receiver
@@ -295,7 +300,7 @@ namespace evm_bridge
             std::vector<uint8_t> data;
             data.insert(data.end(), fnsig.begin(), fnsig.end());
             data.insert(data.end(), fnsig.begin(), fnsig.end());
-            data.insert(data.end(), request_id_bs.begin(), request_id_bs.end());
+            data.insert(data.end(), call_id_bs.begin(), call_id_bs.end());
 
             // Print it
             auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
