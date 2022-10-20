@@ -16,6 +16,14 @@ namespace evm_bridge {
      typedef eosio::multi_index< "stat"_n, currency_stats > eosio_tokens;
 
     //======================== Tables ========================
+    // Requests
+    struct [[eosio::table, eosio::contract("token.brdg")]] requests {
+        bigint::checksum256 request_id;
+        EOSLIB_SERIALIZE(requests, (request_id));
+    };
+
+    typedef singleton<"requests"_n, requests> request_table;
+
     // Config
     struct [[eosio::table, eosio::contract("token.brdg")]] bridgeconfig {
         eosio::checksum160 evm_bridge_address;
@@ -30,6 +38,5 @@ namespace evm_bridge {
 
     typedef singleton<"bridgeconfig"_n, bridgeconfig> config_singleton_bridge;
 
-    // Request
     // Refunds
 }

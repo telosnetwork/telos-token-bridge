@@ -245,6 +245,7 @@ namespace evm_bridge
         auto evm_account = accounts_byaccount.require_find(get_self().value, "EVM account not found for token.brdg");
 
         // Todo: clean out old processed requests
+        requests_table requests(get_self(), get_self().value);
 
         // Define EVM Account State table with EVM bridge contract scope
         account_state_table bridge_account_states(EVM_SYSTEM_CONTRACT, conf.evm_bridge_scope);
@@ -263,19 +264,25 @@ namespace evm_bridge
 
         for(uint256_t i = 0; i < request_array_length->value; i=i+1){
             // TODO: parse EVM Bridge request
-            const vector<uint8_t> request_id_bs = intx::to_byte_string(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 8, i)));
+            const auto request_id = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 8, i));
+            const vector<uint8_t> request_id_bs = intx::to_byte_string(request_id);
             const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, 8, i)));
             const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i)));
             const auto sender_address = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i));
             const std::string memo = "Sent from tEVM via the TokenBridge by " + sender_address;
             const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, i))->value;
+            const quantity = amount.to_string() + " " + token_account_name;
+
+            // TODO: Check request isn't processed
 
             // TODO: check valid request
 
-            // TODO: add request to processed (???)
+            // Add request to processed
+            requests.emplace(get_self(), [&](auto& r) {
+                r.request_id = request_id;
+                r.timestamp = now();
+            });
 
-            // TODO: get user current balance for that token (???)
-            const quantity = amount.to_string() + " " + token_account_name;
             // Send tokens to receiver
             action(
                 permission_level{ get_self(), "active"_n },
@@ -288,15 +295,14 @@ namespace evm_bridge
             std::vector<uint8_t> data;
             data.insert(data.end(), fnsig.begin(), fnsig.end());
             data.insert(data.end(), fnsig.begin(), fnsig.end());
-            // TODO: insert the request id
-
-            // Send success callback call back to EVM using eosio.evm
+            data.insert(data.end(), request_id_bs.begin(), request_id_bs.end());
 
             // Print it
             auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
             std::vector<uint8_t> raw;
             raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
             print(bin2hex(raw));
+            // Send success callback call back to EVM using eosio.evm
             //action(
             //   permission_level {get_self(), "active"_n},
             //   EVM_SYSTEM_CONTRACT,
