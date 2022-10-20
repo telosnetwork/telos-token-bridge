@@ -244,8 +244,13 @@ namespace evm_bridge
         auto accounts_byaccount = _accounts.get_index<"byaccount"_n>();
         auto evm_account = accounts_byaccount.require_find(get_self().value, "EVM account not found for token.brdg");
 
-        // Todo: clean out old processed requests
+        // Todo: clean out old processed requests with time point
         requests_table requests(get_self(), get_self().value);
+        auto requests_by_timestamp = requests.get_index<"timestamp"_n>();
+        auto old_requests = requests_by_timestamp.upper_bound(current_time_point().sec_since_epoch() - 600); // remove 600s
+        while(old_requests != requests_by_timestamp.end()){
+            old_requests = requests_by_timestamp.erase(old_requests);
+        }
 
         // Define EVM Account State table with EVM bridge contract scope
         account_state_table bridge_account_states(EVM_SYSTEM_CONTRACT, conf.evm_bridge_scope);
@@ -275,7 +280,7 @@ namespace evm_bridge
             const std::string quantity = decodeHex(bin2hex(intx::to_byte_string(amount))) + " " + token_account_name.to_string();
 
             // Check request not already processing
-            auto requests_by_call_id = requests.get_index<"bycallid"_n>();
+            auto requests_by_call_id = requests.get_index<"callid"_n>();
             auto exists = requests_by_call_id.find(toChecksum256(call_id));
             if(exists != requests_by_call_id.end()){
                 continue;

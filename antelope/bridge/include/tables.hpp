@@ -29,7 +29,8 @@ namespace evm_bridge {
         EOSLIB_SERIALIZE(requests, (request_id)(call_id)(timestamp));
     };
     typedef multi_index<name("requests"), requests,
-       eosio::indexed_by<eosio::name("bycallid"), eosio::const_mem_fun<requests, eosio::checksum256, &requests::by_call_id >>
+       indexed_by<"callid"_n, eosio::const_mem_fun<requests, eosio::checksum256, &requests::by_call_id >>,
+       indexed_by<"timestamp"_n, const_mem_fun<requests, uint64_t, &requests::by_timestamp >>
     >  requests_table;
 
     // Config
