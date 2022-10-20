@@ -6,11 +6,11 @@ module.exports = async ({getNamedAccounts, deployments}) => {
     const MAX_BRIDGE_REQUEST_PER_REQUESTOR = 10;
     const MAX_REQUEST_VALIDITY = 1200;
 
-    //const register = await deploy('PairBridgeRegister', {
-    //    from: deployer,
-    //    args: [ANTELOPE_BRIDGE_EVM_ADDRESS, MAX_REG_REQUEST_PER_REQUESTOR, MAX_REQUEST_VALIDITY],
-    //});
-    //console.log("Register deployed to:", register.address);
+     const register = await deploy('PairBridgeRegister', {
+         from: deployer,
+         args: [ANTELOPE_BRIDGE_EVM_ADDRESS, MAX_REG_REQUEST_PER_REQUESTOR, MAX_REQUEST_VALIDITY],
+     });
+     console.log("Register deployed to:", register.address);
 
     const bridge = await deploy('TokenBridge', {
         from: deployer,

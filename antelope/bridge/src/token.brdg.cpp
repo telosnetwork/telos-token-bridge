@@ -244,11 +244,12 @@ namespace evm_bridge
         auto accounts_byaccount = _accounts.get_index<"byaccount"_n>();
         auto evm_account = accounts_byaccount.require_find(get_self().value, "EVM account not found for token.brdg");
 
-        // Todo: clean out old processed requests with time point
+        // Clean out old processed requests
         requests_table requests(get_self(), get_self().value);
         auto requests_by_timestamp = requests.get_index<"timestamp"_n>();
         auto old_requests = requests_by_timestamp.upper_bound(current_time_point().sec_since_epoch() - 600); // remove 600s
         while(old_requests != requests_by_timestamp.end()){
+            print("Deleted one request \n");
             old_requests = requests_by_timestamp.erase(old_requests);
         }
 
@@ -268,25 +269,27 @@ namespace evm_bridge
         auto fnsig = toBin(EVM_SUCCESS_CALLBACK_SIGNATURE);
 
         for(uint256_t i = 0; i < request_array_length->value; i=i+1){
-            const auto call_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 8, i));
+            const auto call_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 6, i));
             const uint256_t call_id = (call_id_checksum != bridge_account_states_bykey.end()) ? call_id_checksum->value : uint256_t(0); // Needed because row is not set at all if the value is 0
             const vector<uint8_t> call_id_bs = intx::to_byte_string(call_id);
-            const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, 8, i))->value);
-            const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i))->value);
-            const auto sender_address_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 8, i));
-            std::string sender_address = "";
-            const std::string memo = "Sent from tEVM via the TokenBridge by " + sender_address;
-            const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 4, 8, i))->value;
+            const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, 6, i))->value);
+            const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 5, 6, i))->value);
+            const auto sender_address_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 1, 6, i));
+            std::string sender_address = bin2hex(toBin(sender_address_checksum->value));
+            print(sender_address);
+            print("\n");
+            const std::string memo = "Sent from tEVM by " + sender_address;
+            const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 6, i))->value;
             const std::string quantity = decodeHex(bin2hex(intx::to_byte_string(amount))) + " " + token_account_name.to_string();
 
-            // Check request not already processing
+            // Check request not already being processed
             auto requests_by_call_id = requests.get_index<"callid"_n>();
             auto exists = requests_by_call_id.find(toChecksum256(call_id));
             if(exists != requests_by_call_id.end()){
                 continue;
             }
 
-            // Add request to processed
+            // Add request
             requests.emplace(get_self(), [&](auto& r) {
                 r.request_id = requests.available_primary_key();
                 r.call_id = toChecksum256(call_id);
@@ -301,9 +304,8 @@ namespace evm_bridge
                     std::make_tuple(get_self(), receiver, quantity, memo)
             ).send();
 
-            // TODO: setup success callback call so request get deleted on EVM
+            // Setup success callback call so request get deleted on EVM
             std::vector<uint8_t> data;
-            data.insert(data.end(), fnsig.begin(), fnsig.end());
             data.insert(data.end(), fnsig.begin(), fnsig.end());
             data.insert(data.end(), call_id_bs.begin(), call_id_bs.end());
 
@@ -312,7 +314,7 @@ namespace evm_bridge
             std::vector<uint8_t> raw;
             raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
             print(bin2hex(raw));
-            // Send success callback call back to EVM using eosio.evm
+            // Call success callback on tEVM using eosio.evm
             //action(
             //   permission_level {get_self(), "active"_n},
             //   EVM_SYSTEM_CONTRACT,

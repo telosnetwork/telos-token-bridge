@@ -42,7 +42,6 @@ contract TokenBridge is Ownable {
         uint amount;
         uint requested_at;
         string receiver;
-        string memo;
     }
 
     Request[] public requests;
@@ -150,13 +149,12 @@ contract TokenBridge is Ownable {
      }
 
      // TO ANTELOPE
-     function bridge(IERC20Bridgeable token, uint amount, string calldata receiver, string calldata memo) external payable {
+     function bridge(IERC20Bridgeable token, uint amount, string calldata receiver) external payable {
         // Checks
         require(msg.value >= fee, "Needs TLOS fee passed");
         require(request_counts[msg.sender] < max_requests_per_requestor, "Maximum requests reached. Please wait for them to complete before trying again.");
         require(bytes(receiver).length <= 12, "Receiver name cannot be over 12 characters");
         require(bytes(receiver).length > 2, "Receiver name cannot be less than 3 characters");
-        require(bytes(memo).length < 257, "Memo cannot be over 256 characters");
         require(amount >= min_amount, "Minimum amount is not reached");
 
         // Check token has bridge address
@@ -177,7 +175,7 @@ contract TokenBridge is Ownable {
         // Burn it <(;;)>
         try token.burnFrom(msg.sender, amount){
             // Add a request to be picked up and processed by the Antelope side
-            requests.push(Request (request_id, msg.sender, address(token), amount, block.timestamp, receiver, memo));
+            requests.push(Request (request_id, msg.sender, address(token), amount, block.timestamp, receiver));
             emit BridgeToAntelopeRequested(request_id, msg.sender, address(token), amount, receiver);
             request_id++;
             request_counts[msg.sender]++;
