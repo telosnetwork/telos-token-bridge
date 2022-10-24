@@ -182,6 +182,16 @@ namespace evm_bridge
     return eosio::symbol_code(parseStringFromStorage(checksum)); // convert to symbol code
   }
 
+
+  // Parses an EVM address from an EVM Storage string
+  inline std::vector<uint8_t> parseAddressFromStorage(const uint256_t checksum){
+    std::vector<uint8_t> bs = intx::to_byte_string(checksum);
+    reverse(bs.begin(),bs.end());
+    bs.resize(20); // remove trailing 0
+    reverse(bs.begin(),bs.end());
+    return bs;
+  }
+
   template <typename T, typename U>
   static inline void insertElementPosition(std::vector<T> *data, U position){
         std::vector<T> string_position_bs = pad(intx::to_byte_string(position), 32, true);

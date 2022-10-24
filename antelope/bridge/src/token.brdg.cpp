@@ -129,10 +129,7 @@ namespace evm_bridge
                 const auto pair_active = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 0, 10, i));
                 check(pair_active->value == uint256_t(1), "This token's pair is paused");
                 const auto pair_evm_address_stored = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 2, 10, i));
-                pair_evm_address_bs = intx::to_byte_string(pair_evm_address_stored->value);
-                reverse(pair_evm_address_bs.begin(),pair_evm_address_bs.end());
-                pair_evm_address_bs.resize(20);
-                reverse(pair_evm_address_bs.begin(),pair_evm_address_bs.end());
+                pair_evm_address_bs = parseAddressFromStorage(pair_evm_address_stored->value);
                 // TODO: get EVM decimals to use below for amount calculation
             }
         }
@@ -281,12 +278,12 @@ namespace evm_bridge
         for(uint64_t i = 0; i < request_array_length->value; i++){
             const auto call_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, request_property_count, i));
             const uint256_t call_id = (call_id_checksum != bridge_account_states_bykey.end()) ? call_id_checksum->value : uint256_t(0); // Needed because row is not set at all if the value is 0
-            const vector<uint8_t> call_id_bs = intx::to_byte_string(call_id);
+            const vector<uint8_t> call_id_bs = pad(intx::to_byte_string(call_id), 16, true);
             const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 5, request_property_count, i))->value);
             const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 6, request_property_count, i))->value);
             const auto sender_address_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 1, request_property_count, i));
-            std::string sender_address = bin2hex(toBin(sender_address_checksum->value));
-            const std::string memo = "Sent from tEVM by " + sender_address;
+            std::string sender_address = bin2hex(parseAddressFromStorage(sender_address_checksum->value));
+            const std::string memo = "Sent from tEVM by 0x" + sender_address;
 
             // Get token symbol from PairBridgeRegister
             eosio::symbol_code antelope_symbol;
@@ -339,12 +336,12 @@ namespace evm_bridge
             raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
             print(bin2hex(raw));
             // Call success callback on tEVM using eosio.evm
-            //action(
-            //   permission_level {get_self(), "active"_n},
-            //   EVM_SYSTEM_CONTRACT,
-            //   "raw"_n,
-            //   std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
-            //).send();
+            action(
+               permission_level {get_self(), "active"_n},
+               EVM_SYSTEM_CONTRACT,
+               "raw"_n,
+               std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
+            ).send();
         }
     };
 
