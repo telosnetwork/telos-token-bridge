@@ -53,12 +53,31 @@ namespace evm_bridge
 
             //======================== Token bridge actions ========================
 
+            // Notifies Antelope of a refund in EVM
             [[eosio::action]] void refundnotify();
+
+            // Notifies Antelope of a bridge request in EVM
             [[eosio::action]] void reqnotify();
+
+            // Signs EVM registration request from Antelope
             [[eosio::action]] void signregpair(eosio::checksum160 evm_address, eosio::name account, eosio::symbol symbol, uint64_t request_id);
+
+            // Bridge to EVM
             [[eosio::on_notify("*::transfer")]] void bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo);
 
             config_singleton_bridge config_bridge;
             config_singleton_evm config;
+
+            #if (TESTING == true)
+                [[eosio::action]] void clearreq()
+                {
+                    requests_table requests(get_self(), get_self().value);
+                    auto itr = requests.end();
+                    while (requests.begin() != itr)
+                    {
+                      itr = requests.erase(--itr);
+                    }
+                }
+            #endif
     };
 }

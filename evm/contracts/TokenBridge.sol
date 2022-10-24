@@ -23,10 +23,10 @@ interface IPairBridgeRegister {
 
 contract TokenBridge is Ownable {
 
-    event  BridgeToAntelopeRequested(uint request_id, address indexed sender, address indexed token, uint amount, string recipient);
-    event  BridgeToAntelopeSucceeded(uint request_id, address indexed sender, address indexed token, uint amount, string recipient);
-    event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed token, uint amount);
-    event  BridgeFromAntelopeFailed(address indexed recipient, address indexed token, uint amount, string refund_account);
+    event  BridgeToAntelopeRequested(uint request_id, address indexed sender, address indexed evm_token, string antelope_token, uint amount, string recipient);
+    event  BridgeToAntelopeSucceeded(uint request_id, address indexed sender, address indexed evm_token, string antelope_token, uint amount, string recipient);
+    event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed evm_token, uint amount);
+    event  BridgeFromAntelopeFailed(address indexed recipient, address indexed evm_token, uint amount, string refund_account);
     event  BridgeFromAntelopeRefunded(uint refund_id);
 
     uint public fee;
@@ -38,9 +38,10 @@ contract TokenBridge is Ownable {
     struct Request {
         uint id;
         address sender;
-        address token;
         uint amount;
         uint requested_at;
+        address token;
+        string antelope_token;
         string receiver;
     }
 
@@ -99,7 +100,7 @@ contract TokenBridge is Ownable {
      function requestSuccessful(uint id) external onlyAntelopeBridge {
         for(uint i = 0; i < requests.length; i++){
             if(requests[i].id == id){
-                emit BridgeToAntelopeSucceeded(id, requests[i].sender, requests[i].token, requests[i].amount, requests[i].receiver);
+                emit BridgeToAntelopeSucceeded(id, requests[i].sender, requests[i].token, requests[i].antelope_token, requests[i].amount, requests[i].receiver);
                 _removeRequest(i);
             }
         }
@@ -175,8 +176,8 @@ contract TokenBridge is Ownable {
         // Burn it <(;;)>
         try token.burnFrom(msg.sender, amount){
             // Add a request to be picked up and processed by the Antelope side
-            requests.push(Request (request_id, msg.sender, address(token), amount, block.timestamp, receiver));
-            emit BridgeToAntelopeRequested(request_id, msg.sender, address(token), amount, receiver);
+            requests.push(Request (request_id, msg.sender, amount, block.timestamp, address(token), pairData.antelope_account_name, receiver));
+            emit BridgeToAntelopeRequested(request_id, msg.sender, address(token), pairData.antelope_account_name, amount, receiver);
             request_id++;
             request_counts[msg.sender]++;
         } catch {

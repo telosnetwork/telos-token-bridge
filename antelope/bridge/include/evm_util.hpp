@@ -164,12 +164,22 @@ namespace evm_bridge
       return result;
   }
 
-  // Parses an Antelope name from an EVM Storage string (meaning less than < 32bytes only)
-  inline eosio::name parseNameFromStorage(const uint256_t checksum){
+  // Parses a string from an EVM Storage string (less than < 32bytes only)
+  inline std::string parseStringFromStorage(const uint256_t checksum){
     const size_t length = shrink<size_t>(checksum.lo) / 2; // get length from last 32 bytes as size_t
     std::vector<uint8_t> bs = intx::to_byte_string(checksum.hi); // get first 32 bytes
     bs.resize(length); // remove trailing 0
-    return eosio::name(decodeHex(bin2hex(bs))); // convert to name
+    return decodeHex(bin2hex(bs)); // convert to string
+  }
+
+  // Parses an Antelope name from an EVM Storage string
+  inline eosio::name parseNameFromStorage(const uint256_t checksum){
+    return eosio::name(parseStringFromStorage(checksum)); // convert to name
+  }
+
+  // Parses an Antelope symbol code from an EVM Storage string
+  inline eosio::symbol_code parseSymbolCodeFromStorage(const uint256_t checksum){
+    return eosio::symbol_code(parseStringFromStorage(checksum)); // convert to symbol code
   }
 
   template <typename T, typename U>

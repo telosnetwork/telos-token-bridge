@@ -93,8 +93,7 @@ namespace evm_bridge
     [[eosio::on_notify("*::transfer")]]
     void tokenbridge::bridge(eosio::name from, eosio::name to, eosio::asset quantity, std::string memo)
     {
-        // Check transfer is ok for bridging
-        check(from != get_self(), "Sender is this contract");
+        if(from == get_self()) return; // Return so we don't stop sending from this contract when bridging from EVM
         check(to == get_self(), "Recipient is not this contract");
         check(memo.length() == 42, "Memo needs to contain the 42 character EVM recipient address");
         // Check amount
@@ -244,23 +243,34 @@ namespace evm_bridge
         auto accounts_byaccount = _accounts.get_index<"byaccount"_n>();
         auto evm_account = accounts_byaccount.require_find(get_self().value, "EVM account not found for token.brdg");
 
-        // Clean out old processed requests
+        // Erase old requests
         requests_table requests(get_self(), get_self().value);
         auto requests_by_timestamp = requests.get_index<"timestamp"_n>();
-        auto old_requests = requests_by_timestamp.upper_bound(current_time_point().sec_since_epoch() - 600); // remove 600s
-        while(old_requests != requests_by_timestamp.end()){
-            print("Deleted one request \n");
-            old_requests = requests_by_timestamp.erase(old_requests);
+        auto upper = requests_by_timestamp.upper_bound(current_time_point().sec_since_epoch() - 600); // remove 600s so we get only requests that are at least 10mn old
+        uint64_t count = 25; // max 25 requests
+        for(auto itr = requests_by_timestamp.begin(); count > 0 && itr != upper; count--) {
+            itr = requests_by_timestamp.erase(itr);
         }
 
         // Define EVM Account State table with EVM bridge contract scope
         account_state_table bridge_account_states(EVM_SYSTEM_CONTRACT, conf.evm_bridge_scope);
         auto bridge_account_states_bykey = bridge_account_states.get_index<"bykey"_n>();
 
+        // Define EVM Account State table with EVM register contract scope
+        account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
+        auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
+
         // Get array slot to find Request requests[] array length
         auto request_storage_key = toChecksum256(uint256_t(STORAGE_BRIDGE_REQUEST_INDEX));
         auto request_array_length = bridge_account_states_bykey.require_find(request_storage_key, "No requests found");
         auto request_array_slot = checksum256ToValue(keccak_256(request_storage_key.extract_as_byte_array()));
+        uint256_t request_property_count = 7;
+
+        // Get array slot to find Pair pairs[] array length
+        auto pair_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_PAIR_INDEX));
+        auto pair_array_length = register_account_states_bykey.require_find(pair_storage_key, "No pair found");
+        auto pair_array_slot = checksum256ToValue(keccak_256(pair_storage_key.extract_as_byte_array()));
+        uint256_t pair_property_count = 7;
 
         // Prepare address for callback
         auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
@@ -268,19 +278,34 @@ namespace evm_bridge
         evm_to.insert(evm_to.end(), evm_contract.begin(), evm_contract.end());
         auto fnsig = toBin(EVM_SUCCESS_CALLBACK_SIGNATURE);
 
-        for(uint256_t i = 0; i < request_array_length->value; i=i+1){
-            const auto call_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, 6, i));
+        for(uint64_t i = 0; i < request_array_length->value; i++){
+            const auto call_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, request_property_count, i));
             const uint256_t call_id = (call_id_checksum != bridge_account_states_bykey.end()) ? call_id_checksum->value : uint256_t(0); // Needed because row is not set at all if the value is 0
             const vector<uint8_t> call_id_bs = intx::to_byte_string(call_id);
-            const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, 6, i))->value);
-            const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 5, 6, i))->value);
-            const auto sender_address_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 1, 6, i));
+            const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 5, request_property_count, i))->value);
+            const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 6, request_property_count, i))->value);
+            const auto sender_address_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 1, request_property_count, i));
             std::string sender_address = bin2hex(toBin(sender_address_checksum->value));
-            print(sender_address);
-            print("\n");
             const std::string memo = "Sent from tEVM by " + sender_address;
-            const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 3, 6, i))->value;
-            const std::string quantity = decodeHex(bin2hex(intx::to_byte_string(amount))) + " " + token_account_name.to_string();
+
+            // Get token symbol from PairBridgeRegister
+            eosio::symbol_code antelope_symbol;
+            for(uint64_t k = 0; k < pair_array_length->value; k++){
+                const eosio::name pair_token_account_name = parseNameFromStorage(register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 4, pair_property_count, k))->value);
+                if(pair_token_account_name == token_account_name){
+                    antelope_symbol = parseSymbolCodeFromStorage(register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 5, pair_property_count, k))->value);
+                }
+            }
+            check(antelope_symbol.length() > 0, "Symbol could not be found from EVM PairBridgeRegister");
+
+            // Get token from token stat table (and not EVM Register, in case the token issuer changes precision)
+            eosio_tokens token_row(token_account_name, antelope_symbol.raw());
+            auto antelope_token = token_row.require_find(antelope_symbol.raw(), "Token not found. Make sure the symbol is correct.");
+            // Todo: what happens if there is wei > precision ??? Maybe make sure on EVM side that the max precision for bridging matches antelope ? This is not finished v
+            const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, request_property_count, i))->value / pow(10.0, (18 - antelope_token->supply.symbol.precision()));
+            // Todo: convert amount to uint64_t w/ X decimals
+            uint64_t amount_64 = static_cast<uint64_t>(amount);
+            const eosio::asset quantity = asset(amount_64, antelope_token->supply.symbol);
 
             // Check request not already being processed
             auto requests_by_call_id = requests.get_index<"callid"_n>();
@@ -295,7 +320,6 @@ namespace evm_bridge
                 r.call_id = toChecksum256(call_id);
                 r.timestamp = current_time_point();
             });
-
             // Send tokens to receiver
             action(
                 permission_level{ get_self(), "active"_n },
@@ -360,20 +384,17 @@ namespace evm_bridge
         auto request_array_slot = checksum256ToValue(keccak_256(request_storage_key.extract_as_byte_array()));
 
         // Check token doesn't already exist in EVM Register
-        // Get each member of the Token tokens[] array's antelope_account and compare
+        // Get each member of the Pair pairs[] array's antelope_account and compare
         for(uint256_t i = 0; i < pair_array_length->value; i=i+1){
-            const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 7, 10, pair_array_length->value - i));
-            // Todo: check antelope account too ?
-            print(name(decodeHex(bin2hex(intx::to_byte_string(symbol_name->value)))).to_string());
-            if(name(decodeHex(bin2hex(intx::to_byte_string(symbol_name->value)))).value == symbol.code().raw()){
+            const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 5, 7, i));
+            if(parseSymbolCodeFromStorage(symbol_name->value).raw() == symbol.code().raw()){
                 check(false, "The token is already registered");
             }
         }
         // Get each member of the Request requests[] array's antelope_account and compare.
         for(uint256_t k = 0; k < request_array_length->value; k=k+1){
-            const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 8, 11, request_array_length->value - k));
-            // Todo: check antelope account too ?
-            if(name(decodeHex(bin2hex(intx::to_byte_string(symbol_name->value)))).value == symbol.code().raw()){
+            const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 8, 11, k));
+            if(parseSymbolCodeFromStorage(symbol_name->value).raw() == symbol.code().raw()){
                 check(false, "The token is already awaiting approval");
             }
         }

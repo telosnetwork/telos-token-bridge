@@ -14,7 +14,7 @@ module.exports = async ({getNamedAccounts, deployments}) => {
 
     const bridge = await deploy('TokenBridge', {
         from: deployer,
-        args: [ANTELOPE_BRIDGE_EVM_ADDRESS, "0xF5ea09aA5b2dc12483Faf52E092A5281D7bF1BBd",  MAX_BRIDGE_REQUEST_PER_REQUESTOR, "500000000000000000", "1000000000000000000"],
+        args: [ANTELOPE_BRIDGE_EVM_ADDRESS, register.address,  MAX_BRIDGE_REQUEST_PER_REQUESTOR, "500000000000000000", "1000000000000000000"],
     });
 
     console.log("Bridge deployed to:", bridge.address);
