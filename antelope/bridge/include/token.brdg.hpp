@@ -69,13 +69,19 @@ namespace evm_bridge
             config_singleton_evm config;
 
             #if (TESTING == true)
-                [[eosio::action]] void clearreq()
+                [[eosio::action]] void clear()
                 {
                     requests_table requests(get_self(), get_self().value);
                     auto itr = requests.end();
                     while (requests.begin() != itr)
                     {
                       itr = requests.erase(--itr);
+                    }
+                    refunds_table refunds(get_self(), get_self().value);
+                    auto itr_refunds = refunds.end();
+                    while (refunds.begin() != itr_refunds)
+                    {
+                      itr_refunds = refunds.erase(--itr_refunds);
                     }
                 }
             #endif

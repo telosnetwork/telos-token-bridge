@@ -16,7 +16,7 @@ namespace evm_bridge {
      typedef eosio::multi_index< "stat"_n, currency_stats > eosio_tokens;
 
     //======================== Tables ========================
-    // Requests
+    // Bridge requests
     struct [[eosio::table, eosio::contract("token.brdg")]] requests {
         uint64_t request_id;
         eosio::checksum256 call_id;
@@ -32,6 +32,23 @@ namespace evm_bridge {
        indexed_by<"callid"_n, eosio::const_mem_fun<requests, eosio::checksum256, &requests::by_call_id >>,
        indexed_by<"timestamp"_n, const_mem_fun<requests, uint64_t, &requests::by_timestamp >>
     >  requests_table;
+
+    // Bridge refunds
+    struct [[eosio::table, eosio::contract("token.brdg")]] refunds {
+        uint64_t refund_id;
+        eosio::checksum256 call_id;
+        time_point timestamp;
+
+        uint64_t primary_key() const { return refund_id; };
+        eosio::checksum256 by_call_id() const { return call_id; };
+        uint64_t by_timestamp() const {return timestamp.elapsed.to_seconds();}
+
+        EOSLIB_SERIALIZE(refunds, (refund_id)(call_id)(timestamp));
+    };
+    typedef multi_index<name("refunds"), refunds,
+       indexed_by<"callid"_n, eosio::const_mem_fun<refunds, eosio::checksum256, &refunds::by_call_id >>,
+       indexed_by<"timestamp"_n, const_mem_fun<refunds, uint64_t, &refunds::by_timestamp >>
+    >  refunds_table;
 
     // Config
     struct [[eosio::table, eosio::contract("token.brdg")]] bridgeconfig {

@@ -185,37 +185,93 @@ namespace evm_bridge
         auto accounts_byaccount = _accounts.get_index<"byaccount"_n>();
         auto account = accounts_byaccount.require_find(get_self().value, "Account not found");
 
-        // Todo: clean out old processed refunds
+        // Clean out old processed refunds
+        refunds_table refunds(get_self(), get_self().value);
+        auto refunds_by_timestamp = refunds.get_index<"timestamp"_n>();
+        auto upper = refunds_by_timestamp.upper_bound(current_time_point().sec_since_epoch() - 600); // remove 600s so we get only requests that are at least 10mn old
+        uint64_t count = 25; // max 25 requests
+        for(auto itr = refunds_by_timestamp.begin(); count > 0 && itr != upper; count--) {
+            itr = refunds_by_timestamp.erase(itr);
+        }
 
         // Define EVM Account State table with EVM bridge contract scope
         account_state_table bridge_account_states(EVM_SYSTEM_CONTRACT, conf.evm_bridge_scope);
         auto bridge_account_states_bykey = bridge_account_states.get_index<"bykey"_n>();
 
+        // Define EVM Account State table with EVM register contract scope
+        account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
+        auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
+
         // Get array slot to find Refund refunds[] array length
         auto refund_storage_key = toChecksum256(uint256_t(STORAGE_BRIDGE_REFUND_INDEX));
         auto refund_array_length = bridge_account_states_bykey.require_find(refund_storage_key, "No refunds found");
         auto refund_array_slot = checksum256ToValue(keccak_256(refund_storage_key.extract_as_byte_array()));
+        uint8_t refund_property_count = 4;
+
+        // Get array slot to find the PairBridgeRegister Pair pairs[] array length
+        auto pair_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_PAIR_INDEX));
+        auto pair_array_length = register_account_states_bykey.require_find(pair_storage_key, "No pair found");
+        auto pair_array_slot = checksum256ToValue(keccak_256(pair_storage_key.extract_as_byte_array()));
+        uint256_t pair_property_count = 7;
 
         // Prepare address for callback
         auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
         std::vector<uint8_t> to;
         to.insert(to.end(), evm_contract.begin(), evm_contract.end());
 
-        auto fnsig = toBin(EVM_REFUND_CALLBACK_SIGNATURE);
+        const auto fnsig = toBin(EVM_REFUND_CALLBACK_SIGNATURE);
+        const std::string memo = "Bridge refund";
 
-        for(uint256_t i = 0; i < refund_array_length->value; i=i+1){
-            const uint256_t position = refund_array_length->value - i;
-            // TODO: parse EVM Bridge refund
-            const auto refund_id = bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 0, 8, position));
-            const auto recipient = bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 2, 8, position));
-            const auto token = bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 3, 8, position));
+        for(uint64_t i = 0; i < refund_array_length->value; i++){
+            const auto refund_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 0, 8, i));
+            const uint256_t refund_id = (refund_id_checksum != bridge_account_states_bykey.end()) ? refund_id_checksum->value : uint256_t(0); // Needed because row is not set at all if the value is 0
+            const auto refund_id_bs = pad(intx::to_byte_string(refund_id), 16, true);
+            const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 3, refund_property_count, i))->value);
+            const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 2, refund_property_count, i))->value);
 
-            // TODO: unlock & send tokens to recipient
-            // TODO: add refund to processed (???)
+            // Loop over the pairs to get the token symbol
+            eosio::symbol_code antelope_symbol;
+            for(uint64_t k = 0; k < pair_array_length->value; k++){
+                const eosio::name pair_token_account_name = parseNameFromStorage(register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 4, pair_property_count, k))->value);
+                if(pair_token_account_name == token_account_name){
+                    antelope_symbol = parseSymbolCodeFromStorage(register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 5, pair_property_count, k))->value);
+                }
+            }
+            check(antelope_symbol.length() > 0, "Symbol could not be found from EVM PairBridgeRegister");
 
-            // TODO: setup success callback call so refund get deleted on EVM
+            // Get token from token stat table (and not EVM Register, in case the token issuer changes precision)
+            eosio_tokens token_row(token_account_name, antelope_symbol.raw());
+            auto antelope_token = token_row.require_find(antelope_symbol.raw(), "Token not found. Make sure the symbol is correct.");
+            // Todo: what happens if there is wei > precision ??? Maybe make sure on EVM side that the max precision for bridging matches antelope ? This is not finished v
+            const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 1, refund_property_count, i))->value / pow(10.0, (18 - antelope_token->supply.symbol.precision()));
+            uint64_t amount_64 = static_cast<uint64_t>(amount);
+            const eosio::asset quantity = asset(amount_64, antelope_token->supply.symbol);
+
+            // Check refund not already being processed
+            auto refunds_by_call_id = refunds.get_index<"callid"_n>();
+            auto exists = refunds_by_call_id.find(toChecksum256(refund_id));
+            if(exists != refunds_by_call_id.end()){
+                continue;
+            }
+
+            // Add refund
+            refunds.emplace(get_self(), [&](auto& r) {
+                r.refund_id = refunds.available_primary_key();
+                r.call_id = toChecksum256(refund_id);
+                r.timestamp = current_time_point();
+            });
+
+            // Send tokens to receiver
+            action(
+                permission_level{ get_self(), "active"_n },
+                    token_account_name,
+                    "transfer"_n,
+                    std::make_tuple(get_self(), receiver, quantity, memo)
+            ).send();
+
             std::vector<uint8_t> data;
             data.insert(data.end(), fnsig.begin(), fnsig.end());
+            data.insert(data.end(), refund_id_bs.begin(), refund_id_bs.end());
 
             // Send refundSuccessful call to EVM using eosio.evm
             action(
@@ -257,24 +313,25 @@ namespace evm_bridge
         account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
         auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
 
-        // Get array slot to find Request requests[] array length
+        // Get array slot to find the TokenBridge Request requests[] array length
         auto request_storage_key = toChecksum256(uint256_t(STORAGE_BRIDGE_REQUEST_INDEX));
         auto request_array_length = bridge_account_states_bykey.require_find(request_storage_key, "No requests found");
         auto request_array_slot = checksum256ToValue(keccak_256(request_storage_key.extract_as_byte_array()));
-        uint256_t request_property_count = 7;
+        uint8_t request_property_count = 7;
 
-        // Get array slot to find Pair pairs[] array length
+        // Get array slot to find the PairBridgeRegister Pair pairs[] array length
         auto pair_storage_key = toChecksum256(uint256_t(STORAGE_REGISTER_PAIR_INDEX));
         auto pair_array_length = register_account_states_bykey.require_find(pair_storage_key, "No pair found");
         auto pair_array_slot = checksum256ToValue(keccak_256(pair_storage_key.extract_as_byte_array()));
-        uint256_t pair_property_count = 7;
+        uint8_t pair_property_count = 7;
 
-        // Prepare address for callback
+        // Prepare address & function signature for callback
         auto evm_contract = conf.evm_bridge_address.extract_as_byte_array();
         std::vector<uint8_t> evm_to;
         evm_to.insert(evm_to.end(), evm_contract.begin(), evm_contract.end());
         auto fnsig = toBin(EVM_SUCCESS_CALLBACK_SIGNATURE);
 
+        // Loop over the requests
         for(uint64_t i = 0; i < request_array_length->value; i++){
             const auto call_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, request_property_count, i));
             const uint256_t call_id = (call_id_checksum != bridge_account_states_bykey.end()) ? call_id_checksum->value : uint256_t(0); // Needed because row is not set at all if the value is 0
@@ -285,7 +342,7 @@ namespace evm_bridge
             std::string sender_address = bin2hex(parseAddressFromStorage(sender_address_checksum->value));
             const std::string memo = "Sent from tEVM by 0x" + sender_address;
 
-            // Get token symbol from PairBridgeRegister
+            // Loop over the pairs to get the token symbol
             eosio::symbol_code antelope_symbol;
             for(uint64_t k = 0; k < pair_array_length->value; k++){
                 const eosio::name pair_token_account_name = parseNameFromStorage(register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 4, pair_property_count, k))->value);
@@ -300,7 +357,6 @@ namespace evm_bridge
             auto antelope_token = token_row.require_find(antelope_symbol.raw(), "Token not found. Make sure the symbol is correct.");
             // Todo: what happens if there is wei > precision ??? Maybe make sure on EVM side that the max precision for bridging matches antelope ? This is not finished v
             const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, request_property_count, i))->value / pow(10.0, (18 - antelope_token->supply.symbol.precision()));
-            // Todo: convert amount to uint64_t w/ X decimals
             uint64_t amount_64 = static_cast<uint64_t>(amount);
             const eosio::asset quantity = asset(amount_64, antelope_token->supply.symbol);
 
@@ -317,6 +373,7 @@ namespace evm_bridge
                 r.call_id = toChecksum256(call_id);
                 r.timestamp = current_time_point();
             });
+
             // Send tokens to receiver
             action(
                 permission_level{ get_self(), "active"_n },
@@ -325,27 +382,22 @@ namespace evm_bridge
                     std::make_tuple(get_self(), receiver, quantity, memo)
             ).send();
 
-            // Setup success callback call so request get deleted on EVM
+            // Setup success callback call so request get deleted on tEVM
             std::vector<uint8_t> data;
             data.insert(data.end(), fnsig.begin(), fnsig.end());
             data.insert(data.end(), call_id_bs.begin(), call_id_bs.end());
 
-            // Print it
-            auto rlp_encoded = rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0);
-            std::vector<uint8_t> raw;
-            raw.insert(raw.end(), std::begin(rlp_encoded), std::end(rlp_encoded));
-            print(bin2hex(raw));
             // Call success callback on tEVM using eosio.evm
             action(
                permission_level {get_self(), "active"_n},
                EVM_SYSTEM_CONTRACT,
                "raw"_n,
-               std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
+               std::make_tuple(get_self(), rlp::encode(evm_account->nonce + i, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
             ).send();
         }
     };
 
-    // Verify token & sign EVM registration request
+    // Verify token & sign tEVM registration request
     // Todo:: replace uint64_t by uint256_t request_id
     [[eosio::action]]
     void tokenbridge::signregpair(eosio::checksum160 evm_address, eosio::name account, eosio::symbol symbol, uint64_t request_id)

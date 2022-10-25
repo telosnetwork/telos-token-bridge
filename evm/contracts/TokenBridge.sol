@@ -50,7 +50,7 @@ contract TokenBridge is Ownable {
     struct Refund {
         uint id;
         uint amount;
-        string token;
+        string antelope_token;
         string receiver;
     }
 
