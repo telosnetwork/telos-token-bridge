@@ -24,7 +24,7 @@ namespace evm_bridge
   static constexpr auto EVM_SUCCESS_CALLBACK_SIGNATURE = "0fbc79cd";
   static constexpr auto EVM_REFUND_CALLBACK_SIGNATURE = "dc2fdf9f";
   static constexpr auto EVM_BRIDGE_SIGNATURE = "7d056de7";
-  static constexpr auto EVM_SIGN_REGISTRATION_SIGNATURE = "ec0aacf2";
+  static constexpr auto EVM_SIGN_REGISTRATION_SIGNATURE = "a1d22913";
   static constexpr uint256_t STORAGE_BRIDGE_REQUEST_INDEX = 4;
   static constexpr uint256_t STORAGE_BRIDGE_REFUND_INDEX = 5;
   static constexpr uint256_t STORAGE_REGISTER_REQUEST_INDEX = 4;

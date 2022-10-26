@@ -24,7 +24,7 @@ interface IPairBridgeRegister {
 contract TokenBridge is Ownable {
 
     event  BridgeToAntelopeRequested(uint request_id, address indexed sender, address indexed evm_token, string antelope_token, uint amount, string recipient);
-    event  BridgeToAntelopeSucceeded(uint request_id, address indexed sender, address indexed evm_token, string antelope_token, uint amount, string recipient);
+    event  BridgeToAntelopeSucceeded(uint request_id, address indexed sender, string antelope_token, uint amount, string recipient);
     event  BridgeFromAntelopeSucceeded(address indexed recipient, address indexed evm_token, uint amount);
     event  BridgeFromAntelopeFailed(address indexed recipient, address indexed evm_token, uint amount, string refund_account);
     event  BridgeFromAntelopeRefunded(uint refund_id);
@@ -40,9 +40,10 @@ contract TokenBridge is Ownable {
         address sender;
         uint amount;
         uint requested_at;
-        address token;
         string antelope_token;
+        string antelope_symbol;
         string receiver;
+        uint8 evm_decimals;
     }
 
     Request[] public requests;
@@ -51,7 +52,9 @@ contract TokenBridge is Ownable {
         uint id;
         uint amount;
         string antelope_token;
+        string antelope_symbol;
         string receiver;
+        uint8 evm_decimals;
     }
 
     Refund[] refunds;
@@ -100,7 +103,7 @@ contract TokenBridge is Ownable {
      function requestSuccessful(uint id) external onlyAntelopeBridge {
         for(uint i = 0; i < requests.length; i++){
             if(requests[i].id == id){
-                emit BridgeToAntelopeSucceeded(id, requests[i].sender, requests[i].token, requests[i].antelope_token, requests[i].amount, requests[i].receiver);
+                emit BridgeToAntelopeSucceeded(id, requests[i].sender, requests[i].antelope_token, requests[i].amount, requests[i].receiver);
                 _removeRequest(i);
             }
         }
@@ -143,9 +146,9 @@ contract TokenBridge is Ownable {
         try IERC20Bridgeable(token).mint(receiver, amount) {
             emit BridgeFromAntelopeSucceeded(receiver, token, amount);
         } catch {
-            // Could not mint... Refund the Antelope tokens
+            // Could not mint for whatever reason... Refund the Antelope tokens
             emit BridgeFromAntelopeFailed(receiver, token, amount, sender);
-            refunds.push(Refund(refund_id, amount, pairData.antelope_account_name, sender));
+            refunds.push(Refund(refund_id, amount, pairData.antelope_account_name, pairData.antelope_symbol_name, sender, pairData.evm_decimals));
         }
      }
 
@@ -176,7 +179,7 @@ contract TokenBridge is Ownable {
         // Burn it <(;;)>
         try token.burnFrom(msg.sender, amount){
             // Add a request to be picked up and processed by the Antelope side
-            requests.push(Request (request_id, msg.sender, amount, block.timestamp, address(token), pairData.antelope_account_name, receiver));
+            requests.push(Request (request_id, msg.sender, amount, block.timestamp, pairData.antelope_account_name, pairData.antelope_symbol_name, receiver, pairData.evm_decimals));
             emit BridgeToAntelopeRequested(request_id, msg.sender, address(token), pairData.antelope_account_name, amount, receiver);
             request_id++;
             request_counts[msg.sender]++;

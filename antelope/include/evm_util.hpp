@@ -206,21 +206,21 @@ namespace evm_bridge
 
   template <typename T>
   static inline void insertString(std::vector<T> *data, std::string value, uint64_t length){
-        std::vector<T> string_size = pad(intx::to_byte_string(length), 32, true);
-        std::vector<T> str(value.begin(), value.end());
-        str = pad(str, 32, false);
-        data->insert(data->end(), string_size.begin(), string_size.end());
-        data->insert(data->end(), str.begin(), str.end());
+    std::vector<T> string_size = pad(intx::to_byte_string(length), 32, true);
+    std::vector<T> str(value.begin(), value.end());
+    str = pad(str, 32, false);
+    data->insert(data->end(), string_size.begin(), string_size.end());
+    data->insert(data->end(), str.begin(), str.end());
   }
 
   template <typename T>
   static inline void insertName(std::vector<T> *data, uint64_t value, uint64_t length){
-        insertString(data, eosio::name(value).to_string(), length);
+    insertString(data, eosio::name(value).to_string(), length);
   }
 
   template <typename T>
   static inline void insertName(std::vector<T> *data, eosio::name value, uint64_t length){
-        insertString(data, value.to_string(), length);
+    insertString(data, value.to_string(), length);
   }
 
   /**
@@ -311,4 +311,4 @@ namespace evm_bridge
     // Return as address
     return intx::be::load<uint256_t>(right_160);
   };
-} // namespace eosio_evm
+} // namespace bridge_evm

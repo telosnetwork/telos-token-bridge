@@ -1,3 +1,19 @@
 # Telos Token Bridge :: Antelope
 
-The Antelope side of the Token Bridge has 2 independent contracts: the escrow.brdg contract and the main token.brdg contract.
+Currently running on
+
+**TESTNET:** token.brdg
+
+**MAINNET:** TBD
+
+## Build
+
+`bash build.sh`
+
+## Test
+
+`npm run test`
+
+## Deploy 
+
+`bash deploy.sh`

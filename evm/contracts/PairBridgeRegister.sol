@@ -23,8 +23,8 @@ contract PairBridgeRegister is Ownable {
         bool active;
         uint id;
         address evm_address;
-        uint8 evm_decimals;
-        uint8 antelope_decimals;
+        uint evm_decimals; // Needs to be uint256 because tight packing makes uint8 storage not reliably readable from Antelope
+        uint antelope_decimals; // Needs to be uint256 because tight packing makes uint8 storage not reliably readable from Antelope
         string antelope_issuer_name;
         string antelope_account_name;
         string antelope_symbol_name;
@@ -36,9 +36,9 @@ contract PairBridgeRegister is Ownable {
         uint id;
         address sender;
         address evm_address;
-        uint8 evm_decimals;
+        uint evm_decimals; // Needs to be uint256 because tight packing makes uint8 storage not reliably readable from Antelope
         uint timestamp;
-        uint8 antelope_decimals;
+        uint antelope_decimals; // Needs to be uint256 because tight packing makes uint8 storage not reliably readable from Antelope
         string antelope_issuer_name;
         string antelope_account_name;
         string antelope_symbol_name;
@@ -54,8 +54,8 @@ contract PairBridgeRegister is Ownable {
     address public antelope_bridge_evm_address;
 
     constructor(address _antelope_bridge_evm_address, uint8 _max_requests_per_requestor, uint _request_validity_seconds) {
-        pair_id = 0;
-        request_id = 0;
+        pair_id = 1;
+        request_id = 1;
         antelope_bridge_evm_address = _antelope_bridge_evm_address;
         max_requests_per_requestor = _max_requests_per_requestor;
         request_validity_seconds = _request_validity_seconds;
@@ -133,12 +133,12 @@ contract PairBridgeRegister is Ownable {
         require(msg.sender == owner, "Sender must be token owner");
 
         // Get the token data
-        uint8 evm_decimals = token.decimals();
+        uint evm_decimals = token.decimals();
         string memory evm_symbol = token.symbol();
         string memory evm_name = token.name();
 
         // Add a token pair registration request
-        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, block.timestamp, uint8(0), "", "", "", evm_symbol, evm_name ));
+        requests.push(Request(request_id, msg.sender, address(token), evm_decimals, block.timestamp, uint(0), "", "", "", evm_symbol, evm_name ));
         emit RegistrationRequested(request_id, msg.sender, address(token), evm_symbol, evm_name);
         request_id++;
         request_counts[msg.sender]++;
@@ -146,7 +146,7 @@ contract PairBridgeRegister is Ownable {
     }
 
     // Let Antelope bridge sign request (after verification of the eosio.token token there)
-    function signRegistrationRequest (uint id, uint8 _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_issuer_name, string calldata _antelope_symbol) external onlyBridge {
+    function signRegistrationRequest (uint id, uint _antelope_decimals, string calldata _antelope_account_name, string calldata _antelope_issuer_name, string calldata _antelope_symbol) external onlyBridge {
         _removeOutdatedRegistrationRequests();
         require(_antelopeTokenPairExists(_antelope_account_name) == false, "Antelope token already in a pair");
         require(_isEosioName(_antelope_symbol), "Symbol must be an eosio name");
@@ -211,8 +211,8 @@ contract PairBridgeRegister is Ownable {
     }
 
     // TOKEN   ================================================================ >
-    function addPair (IERC20Bridgeable evm_token, uint8 antelope_decimals, string calldata antelope_issuer_name, string calldata antelope_account_name, string calldata antelope_symbol_name) external onlyOwner returns(uint) {
-        uint8 evm_decimals = evm_token.decimals();
+    function addPair (IERC20Bridgeable evm_token, uint antelope_decimals, string calldata antelope_issuer_name, string calldata antelope_account_name, string calldata antelope_symbol_name) external onlyOwner returns(uint) {
+        uint evm_decimals = evm_token.decimals();
         string memory evm_symbol = evm_token.symbol();
         string memory evm_name = evm_token.name();
         pairs.push(Pair(true, pair_id, address(evm_token), evm_decimals, antelope_decimals, antelope_issuer_name, antelope_account_name, antelope_symbol_name, evm_symbol, evm_name));
