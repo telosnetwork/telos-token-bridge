@@ -67,10 +67,10 @@ namespace evm_bridge
         auto stored = config_bridge.get();
         stored.evm_bridge_address = bridge_address;
         stored.evm_bridge_scope = (account_bridge != accounts_byaddress.end()) ? account_bridge->index : 0;
-        check(stored.evm_bridge_scope > 0, "Could not find the EVM TokenBridge eosio.evm index")
+        check(stored.evm_bridge_scope > 0, "Could not find the EVM TokenBridge eosio.evm index");
         stored.evm_register_address = register_address;
         stored.evm_register_scope = (account_register != accounts_byaddress.end()) ? account_register->index : 0;
-        check(stored.evm_register_scope > 0, "Could not find the EVM PairBridgeRegister eosio.evm index")
+        check(stored.evm_register_scope > 0, "Could not find the EVM PairBridgeRegister eosio.evm index");
 
         config_bridge.set(stored, get_self());
     };
@@ -124,7 +124,7 @@ namespace evm_bridge
         // Get each member of the Pair pairs[] array's antelope_account and compare to get the EVM address
         std::string pair_evm_address = "";
         vector<uint8_t> pair_evm_address_bs;
-        for(uint256_t i = 0; i < pair_array_length->value; i=i+1){
+        for(uint64_t i = 0; i < pair_array_length->value; i++){
             // Get the account name string from EVM Storage, this works only for < 32bytes string which any EOSIO name should be (< 13 chars)
             const auto account_name_checksum = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 6, pair_property_count, i));
             eosio::name account_name = parseNameFromStorage(account_name_checksum->value);
@@ -172,10 +172,11 @@ namespace evm_bridge
             permission_level {get_self(), "active"_n},
             EVM_SYSTEM_CONTRACT,
             "raw"_n,
-            std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
+            std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BRIDGE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
         ).send();
     };
 
+    // Refunds bridge request to EVM if minting reverted on EVM
     [[eosio::action]]
     void tokenbridge::refundnotify()
     {
@@ -270,7 +271,7 @@ namespace evm_bridge
                 permission_level {get_self(), "active"_n},
                 EVM_SYSTEM_CONTRACT,
                 "raw"_n,
-                std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
+                std::make_tuple(get_self(), rlp::encode(account->nonce, evm_conf.gas_price, REFUND_CB_GAS, to, uint256_t(0), data, 41, 0, 0),  false, std::optional<eosio::checksum160>(account->address))
             ).send();
         }
 
@@ -373,7 +374,7 @@ namespace evm_bridge
                permission_level {get_self(), "active"_n},
                EVM_SYSTEM_CONTRACT,
                "raw"_n,
-               std::make_tuple(get_self(), rlp::encode(evm_account->nonce + i, evm_conf.gas_price, BASE_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
+               std::make_tuple(get_self(), rlp::encode(evm_account->nonce + i, evm_conf.gas_price, SUCCESS_CB_GAS, evm_to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
             ).send();
         }
     };
@@ -416,13 +417,14 @@ namespace evm_bridge
 
         // Check token doesn't already exist in EVM Register
         // Get each member of the Pair pairs[] array's antelope_account and compare
-        for(uint256_t i = 0; i < pair_array_length->value; i=i+1){
+        for(uint64_t i = 0; i < pair_array_length->value; i++){
             const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 5, 10, i));
             if(parseSymbolCodeFromStorage(symbol_name->value).raw() == symbol.code().raw()){
                 check(false, "The token is already registered");
             }
         }
         // Get each member of the Request requests[] array's antelope_account and compare.
+        // Todo: what happens if registration requests are flooded ??? This can fail to CPU... Maybe just let EVM handle that check on signing ?
         for(uint256_t k = 0; k < request_array_length->value; k=k+1){
             const auto symbol_name = register_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 8, 11, k));
             if(parseSymbolCodeFromStorage(symbol_name->value).raw() == symbol.code().raw()){
@@ -459,7 +461,7 @@ namespace evm_bridge
             permission_level {get_self(), "active"_n},
             EVM_SYSTEM_CONTRACT,
             "raw"_n,
-            std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, BASE_GAS, to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
+            std::make_tuple(get_self(), rlp::encode(evm_account->nonce, evm_conf.gas_price, SIGN_REGISTRATION_GAS, to, uint256_t(0), data, CURRENT_CHAIN_ID, 0, 0),  false, std::optional<eosio::checksum160>(evm_account->address))
         ).send();
     };
 }
