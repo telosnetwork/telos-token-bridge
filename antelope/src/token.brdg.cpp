@@ -67,8 +67,10 @@ namespace evm_bridge
         auto stored = config_bridge.get();
         stored.evm_bridge_address = bridge_address;
         stored.evm_bridge_scope = (account_bridge != accounts_byaddress.end()) ? account_bridge->index : 0;
+        check(stored.evm_bridge_scope > 0, "Could not find the EVM TokenBridge eosio.evm index")
         stored.evm_register_address = register_address;
         stored.evm_register_scope = (account_register != accounts_byaddress.end()) ? account_register->index : 0;
+        check(stored.evm_register_scope > 0, "Could not find the EVM PairBridgeRegister eosio.evm index")
 
         config_bridge.set(stored, get_self());
     };
@@ -190,7 +192,7 @@ namespace evm_bridge
         refunds_table refunds(get_self(), get_self().value);
         auto refunds_by_timestamp = refunds.get_index<"timestamp"_n>();
         auto upper = refunds_by_timestamp.upper_bound(current_time_point().sec_since_epoch() - 60); // remove 60s so we get only requests that are at least 1mn old
-        uint64_t count = 15; // max 15 refunds
+        uint64_t count = 10; // max 10 refunds so we never overload CPU
         for(auto itr = refunds_by_timestamp.begin(); count > 0 && itr != upper; count--) {
             itr = refunds_by_timestamp.erase(itr);
         }
@@ -217,8 +219,8 @@ namespace evm_bridge
         const auto fnsig = toBin(EVM_REFUND_CALLBACK_SIGNATURE);
         const std::string memo = "Bridge refund";
 
-        uint64_t max_refunds = 2;
-        for(uint64_t i = 0; i < refund_array_length->value && i < max_refunds; i++){
+        // Todo: optimize max (i<2)
+        for(uint64_t i = 0; i < refund_array_length->value && i < 2; i++){
             const auto refund_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 0, refund_property_count, i));
             const uint256_t refund_id = (refund_id_checksum != bridge_account_states_bykey.end()) ? refund_id_checksum->value : uint256_t(0); // Needed because row is not set at all if the value is 0
             const auto refund_id_bs = pad(intx::to_byte_string(refund_id), 16, true);
@@ -277,7 +279,7 @@ namespace evm_bridge
     [[eosio::action]]
     void tokenbridge::reqnotify()
     {
-        // Open config singleton
+        // Open config singletons
         auto conf = config_bridge.get();
         auto evm_conf = config.get();
 
@@ -290,7 +292,7 @@ namespace evm_bridge
         requests_table requests(get_self(), get_self().value);
         auto requests_by_timestamp = requests.get_index<"timestamp"_n>();
         auto upper = requests_by_timestamp.upper_bound(current_time_point().sec_since_epoch() - 60); // remove 60s so we get only requests that are at least 1mn old
-        uint64_t count = 15; // max 15 requests
+        uint64_t count = 10; // max 10 requests to remove so we never overload CPU
         for(auto itr = requests_by_timestamp.begin(); count > 0 && itr != upper; count--) {
             itr = requests_by_timestamp.erase(itr);
         }
@@ -315,9 +317,9 @@ namespace evm_bridge
         evm_to.insert(evm_to.end(), evm_contract.begin(), evm_contract.end());
         auto fnsig = toBin(EVM_SUCCESS_CALLBACK_SIGNATURE);
 
-        uint64_t max_requests = 2;
         // Loop over the requests
-        for(uint64_t i = 0; i < request_array_length->value && i < max_requests; i++){
+        // Todo: optimize max (i<2)
+        for(uint64_t i = 0; i < request_array_length->value && i < 2; i++){
             const auto call_id_checksum = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 0, request_property_count, i));
             const uint256_t call_id = (call_id_checksum != bridge_account_states_bykey.end()) ? call_id_checksum->value : uint256_t(0); // Needed because row is not set at all if the value is 0
             const vector<uint8_t> call_id_bs = pad(intx::to_byte_string(call_id), 16, true);
@@ -332,8 +334,8 @@ namespace evm_bridge
             // Get token from token stat table (and not EVM Register, in case the token issuer changes precision)
             eosio_tokens token_row(token_account_name, antelope_symbol.raw());
             auto antelope_token = token_row.require_find(antelope_symbol.raw(), "Token not found. Make sure the symbol is correct.");
-            // Todo: what happens if there is wei > precision ??? Maybe make sure on EVM side that the max precision for bridging matches antelope ? This is not finished v
-            // Todo: make sure amount isn't > uint64_t max on EVM
+
+            // We made sure on the tEVM side that the max precision for bridging matches antelope and that the wei amount to bridge (minus precision) is =< uint64_t max of 18446744073709551615
             const double exponent = ((static_cast<uint64_t>(evm_decimals) - antelope_token->supply.symbol.precision()) * 1.0);
             const uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, request_property_count, i))->value / pow(10.0, exponent);
             uint64_t amount_64 = static_cast<uint64_t>(amount);
