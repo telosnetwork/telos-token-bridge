@@ -81,11 +81,17 @@ describe("TokenBridge Contract", function () {
             await expect(evm_bridge.connect(user).bridge(token.address, ONE_TLOS, ANTELOPE_ISSUER_NAME, {value: ethers.utils.parseEther('0.1')})).to.be.revertedWith('Needs TLOS fee passed');
         });
         it("Should not let senders request bridging of a paused registered ERC20Bridgeable" , async function () {
-            expect(await register.pausePair(0)).to.emit('PairPaused');
+            expect(await register.pausePair(1)).to.emit('PairPaused');
             await expect(evm_bridge.connect(user).bridge(token.address, ONE_TLOS, ANTELOPE_ISSUER_NAME, {value: HALF_TLOS})).to.be.revertedWith('Bridging is paused for token');
         });
         it("Should not let senders request bridging of a registered ERC20Bridgeable if allowance is too low" , async function () {
             await expect(evm_bridge.connect(user).bridge(token.address, ONE_TLOS.mul(2), ANTELOPE_ISSUER_NAME, {value: HALF_TLOS})).to.be.revertedWith('Allowance is too low');
+        });
+        it("Should not let senders request bridging if amount (w/ precision correction) is above C++ uint64_t max" , async function () {
+            await expect(evm_bridge.connect(user).bridge(token.address, ethers.utils.parseEther("1844674407370955.1616"), ANTELOPE_ISSUER_NAME, {value: HALF_TLOS})).to.be.revertedWith('Amount is too high to bridge');
+        });
+        it("Should not let senders request bridging if amount needs precision > the antelope token precision" , async function () {
+            await expect(evm_bridge.connect(user).bridge(token.address, ethers.utils.parseEther("4467440737.16160955"), ANTELOPE_ISSUER_NAME, {value: HALF_TLOS})).to.be.revertedWith('Amount must not have more decimal places than the Antelope token');
         });
         it("Should not let senders request more than " + MAX_REQUESTS + " requests" , async function () {
             // Add a registered token
