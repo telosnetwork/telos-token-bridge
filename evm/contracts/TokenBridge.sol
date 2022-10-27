@@ -168,6 +168,13 @@ contract TokenBridge is Ownable {
         IPairBridgeRegister.Pair memory pairData = pair_register.getPair(address(token));
         require(pairData.active, "Bridging is paused for token");
 
+        // Make sure the amount passed has a max precision that matches the token's antelope precision
+        uint sanitized_amount = amount / (10**(pairData.evm_decimals - pairData));
+        require(sanitized_amount * (10**(pairData.evm_decimals - pairData)) == amount, "Amount must not have more decimal places than the Antelope token")
+
+        // Enforce sanitized amount under C++ uint64_t max (for Antelope transfer)
+        require(sanitized_amount =< 18446744073709551615, "Amount is too high to bridge");
+
         // Check allowance is ok
         uint remaining = token.allowance(msg.sender, address(this));
         require(remaining >= amount, "Allowance is too low");
@@ -185,7 +192,7 @@ contract TokenBridge is Ownable {
             request_counts[msg.sender]++;
         } catch {
             // Burning failed... Nothing to do but revert...
-            revert('Tokens could not be burned...');
+            revert('Tokens could not be burned');
         }
      }
 }
