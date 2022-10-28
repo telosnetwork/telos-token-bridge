@@ -124,6 +124,7 @@ namespace evm_bridge
         // Get each member of the Pair pairs[] array's antelope_account and compare to get the EVM address
         std::string pair_evm_address = "";
         vector<uint8_t> pair_evm_address_bs;
+        uint64_t pair_evm_decimals;
         for(uint64_t i = 0; i < pair_array_length->value; i++){
             // Get the account name string from EVM Storage, this works only for < 32bytes string which any EOSIO name should be (< 13 chars)
             const auto account_name_checksum = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 6, pair_property_count, i));
@@ -133,7 +134,7 @@ namespace evm_bridge
                 check(pair_active->value == uint256_t(1), "This token's pair is paused");
                 const auto pair_evm_address_stored = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 2, pair_property_count, i));
                 pair_evm_address_bs = parseAddressFromStorage(pair_evm_address_stored->value);
-                const auto pair_evm_decimals = register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 3, pair_property_count, i))->value;
+                pair_evm_decimals = static_cast<uint64_t>(register_account_states_bykey.find(getArrayMemberSlot(pair_array_slot, 3, pair_property_count, i))->value);
             }
         }
         check(pair_evm_address_bs.size() > 0, "This token has no pair registered on this bridge");
@@ -228,20 +229,20 @@ namespace evm_bridge
             const eosio::name receiver = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 4, refund_property_count, i))->value);
             const eosio::name token_account_name = parseNameFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 2, refund_property_count, i))->value);
             const eosio::symbol_code antelope_symbol = parseSymbolCodeFromStorage(bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 3, refund_property_count, i))->value);
-            const uint256_t evm_decimals = bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 5, refund_property_count, i))->value;
+            const uint64_t evm_decimals = static_cast<uint64_t>(bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 5, refund_property_count, i))->value);
 
             // Get token from token stat table (and not EVM Register, in case the token issuer changes precision)
             eosio_tokens token_row(token_account_name, antelope_symbol.raw());
             const auto antelope_token = token_row.require_find(antelope_symbol.raw(), "Token not found. Make sure the symbol is correct.");
 
             // Get amount according to decimal places on each chain
-            const uint256_t amount;
-            if(evm_decimals < antelope_token){
+            uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(refund_array_slot, 1, refund_property_count, i))->value;
+            if(evm_decimals < antelope_token->supply.symbol.precision()){
                 const double exponent = (evm_decimals - antelope_token->supply.symbol.precision()) * 1.0;
-                amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, request_property_count, i))->value / pow(10.0, exponent);
+                amount = amount / pow(10.0, exponent);
             } else {
                 const double exponent = (antelope_token->supply.symbol.precision() - evm_decimals) * 1.0;
-                amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, request_property_count, i))->value * pow(10.0, exponent);
+                amount = amount * pow(10.0, exponent);
             }
             const uint64_t amount_64 = static_cast<uint64_t>(amount);
             const eosio::asset quantity = asset(amount_64, antelope_token->supply.symbol);
@@ -344,13 +345,13 @@ namespace evm_bridge
             auto antelope_token = token_row.require_find(antelope_symbol.raw(), "Token not found. Make sure the symbol is correct.");
 
             // We made sure on the tEVM side that the max precision for bridging matches antelope and that the wei amount to bridge (minus precision) is =< uint64_t max of 18446744073709551615
-            const uint256_t amount;
-            if(evm_decimals < antelope_token){
+            uint256_t amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, request_property_count, i))->value;
+            if(evm_decimals < antelope_token->supply.symbol.precision()){
                 const double exponent = (evm_decimals - antelope_token->supply.symbol.precision()) * 1.0;
-                amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, request_property_count, i))->value / pow(10.0, exponent);
+                amount = amount / pow(10.0, exponent);
             } else {
                 const double exponent = (antelope_token->supply.symbol.precision() - evm_decimals) * 1.0;
-                amount = bridge_account_states_bykey.find(getArrayMemberSlot(request_array_slot, 2, request_property_count, i))->value * pow(10.0, exponent);
+                amount = amount * pow(10.0, exponent);
             }
             uint64_t amount_64 = static_cast<uint64_t>(amount);
             const eosio::asset quantity = asset(amount_64, antelope_token->supply.symbol);
