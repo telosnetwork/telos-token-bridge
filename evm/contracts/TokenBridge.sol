@@ -169,8 +169,10 @@ contract TokenBridge is Ownable {
         require(pairData.active, "Bridging is paused for token");
 
         // Make sure the amount passed has a max precision that matches the token's antelope precision
-        uint sanitized_amount = amount / (10**(pairData.evm_decimals - pairData.antelope_decimals));
-        require(sanitized_amount * (10**(pairData.evm_decimals - pairData.antelope_decimals)) == amount, "Amount must not have more decimal places than the Antelope token");
+        // Todo what happens if decimals are < on EVM than on Antelope ?
+        uint exponent = (10**(pairData.evm_decimals - pairData.antelope_decimals));
+        uint sanitized_amount = amount / exponent;
+        require(sanitized_amount * exponent == amount, "Amount must not have more decimal places than the Antelope token");
 
         // Enforce sanitized amount under C++ uint64_t max (for Antelope transfer)
         require(sanitized_amount <= 18446744073709551615, "Amount is too high to bridge");

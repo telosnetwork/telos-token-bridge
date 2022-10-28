@@ -15,7 +15,8 @@ describe("token.brdg.cpp test", () => {
         account = await chain.system.createAccount("testaccount1");
         account2 = await chain.system.createAccount("testaccount2");
         bridgeAccount = await chain.system.createAccount("token.brdg");
-        // Todo deploy eosio.evm ?
+        // Todo: deploy eosio.evm with TokenBridge, PairBridgeRegister and a ERC20Bridgeable ?
+        // Todo: deploy an eosio token
         bridge = await bridgeAccount.setContract({
             abi: "./build/token.brdg.abi",
             wasm: "./build/token.brdg.wasm",
@@ -95,21 +96,22 @@ describe("token.brdg.cpp test", () => {
     });
     describe(":: Sign EVM registration request", function () {
         it("Should let token owners sign registration requests from Antelope", async () => {
-            // Todo: find way to have EVM test deployment on same network
+            // Todo: find way to have EVM test deployment on same network or mock it
         });
     });
     describe(":: Bridge to EVM", function () {
         it("Should let users bridge a eosio.token token with a registered pair to its paired token on EVM", async () => {
-
+            // Todo: find way to have EVM test deployment on same network or mock it
         });
     });
     describe(":: Bridge from EVM", function () {
         it("Should let anyone notify of a bridging request on EVM", async () => {
-            // Todo: mock EVM request
+            // Todo: find way to have EVM test deployment on same network or mock it
         });
         it("Should revert if no requests are found on EVM", async () => {
+            // Todo: find way to have EVM test deployment on same network or mock it
             await expectThrow(
-                bridge.action.refundnotify(
+                bridge.action.reqnotify(
                     {},
                     [{ actor: account.name, permission: "active" }]
                 ),
@@ -117,9 +119,10 @@ describe("token.brdg.cpp test", () => {
             );
         });
         it("Should let anyone notify of a refund on EVM", async () => {
-            // Todo: mock EVM refund
+            // Todo: find way to have EVM test deployment on same network or mock it
         });
         it("Should revert if no refunds are found on EVM", async () => {
+            // Todo: find way to have EVM test deployment on same network or mock it
             await expectThrow(
                 bridge.action.refundnotify(
                     {},
