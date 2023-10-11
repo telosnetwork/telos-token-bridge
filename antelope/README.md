@@ -30,4 +30,4 @@ followed by
 First create an EOSIO account (**YOUR_CONTRACT_ACCOUNT**) for your contract and setup the key in your Cleos wallet.
 Then use the following command:
 
-`bash deploy.sh testnet **YOUR_CONTRACT_ACCOUNT**`
+`bash deploy.sh testnet YOUR_CONTRACT_ACCOUNT`
