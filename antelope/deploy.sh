@@ -6,4 +6,10 @@ then
 else
   url="https://testnet.telos.caleos.io"
 fi
-cleos --url "$url" set contract token.brdg "$PWD/build" token.brdg.wasm token.brdg.abi
+if [ -z "$2" ]
+then
+  contract="token.brdg"
+else
+  contract=$2
+fi
+cleos --url "$url" set contract "$contract" "$PWD/build" token.brdg.wasm token.brdg.abi
