@@ -58,16 +58,16 @@ _For test purposes only, does not get deployed_
 
 ## Install
 
-`npm install`
+`npm install` from the evm directory
 
 ## Test
 
-Use the following command to test it:
+Then use the following command to start tests:
 
 `npx hardhat test`
 
 ## Deploy
 
-Use the following command to deploy it:
+And the following command to deploy it:
 
 `npx hardhat deploy --network [testnet|mainnet]`
