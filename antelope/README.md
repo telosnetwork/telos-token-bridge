@@ -17,6 +17,8 @@ Currently running on
 
 ### Test
 
+`npm install`
+Followed by
 `npm run test`
 
 ### Deploy 
