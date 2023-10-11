@@ -122,7 +122,6 @@ namespace evm_bridge
         auto pair_property_count = 10;
 
         // Get each member of the Pair pairs[] array's antelope_account and compare to get the EVM address
-        std::string pair_evm_address = "";
         vector<uint8_t> pair_evm_address_bs;
         uint64_t pair_evm_decimals;
         for(uint64_t i = 0; i < pair_array_length->value; i++){
@@ -202,10 +201,6 @@ namespace evm_bridge
         // Define EVM Account State table with EVM bridge contract scope
         account_state_table bridge_account_states(EVM_SYSTEM_CONTRACT, conf.evm_bridge_scope);
         auto bridge_account_states_bykey = bridge_account_states.get_index<"bykey"_n>();
-
-        // Define EVM Account State table with EVM register contract scope
-        account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
-        auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
 
         // Get array slot to find Refund refunds[] array length
         auto refund_storage_key = toChecksum256(STORAGE_BRIDGE_REFUND_INDEX);
@@ -309,10 +304,6 @@ namespace evm_bridge
         // Define EVM Account State table with EVM bridge contract scope
         account_state_table bridge_account_states(EVM_SYSTEM_CONTRACT, conf.evm_bridge_scope);
         auto bridge_account_states_bykey = bridge_account_states.get_index<"bykey"_n>();
-
-        // Define EVM Account State table with EVM register contract scope
-        account_state_table register_account_states(EVM_SYSTEM_CONTRACT, conf.evm_register_scope);
-        auto register_account_states_bykey = register_account_states.get_index<"bykey"_n>();
 
         // Get array slot to find the TokenBridge Request[] requests array length
         auto request_storage_key = toChecksum256(STORAGE_BRIDGE_REQUEST_INDEX);
