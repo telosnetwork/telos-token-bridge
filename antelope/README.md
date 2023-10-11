@@ -27,4 +27,4 @@ followed by
 
 ### Deploy 
 
-`bash deploy.sh`
+`bash deploy.sh testnet YOUR_CONTRACT_ACCOUNT`
