@@ -9,8 +9,8 @@ Currently running on
 ## Install
 
 ### Requirements
-[EOSIO CDT](https://developers.eos.io/welcome/latest/getting-started-guide/local-development-environment/installing-eosiocdt)
-
+- [EOSIO CDT](https://developers.eos.io/welcome/latest/getting-started-guide/local-development-environment/installing-eosiocdt)
+- [Cleos](https://developers.eos.io/manuals/eos/v2.2/install/install-prebuilt-binaries)
 ### Build
 
 `bash build.sh`
