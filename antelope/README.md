@@ -6,14 +6,19 @@ Currently running on
 
 **MAINNET:** TBD
 
-## Build
+## Install
+
+### Requirements
+[EOSIO CDT](https://developers.eos.io/welcome/latest/getting-started-guide/local-development-environment/installing-eosiocdt)
+
+### Build
 
 `bash build.sh`
 
-## Test
+### Test
 
 `npm run test`
 
-## Deploy 
+### Deploy 
 
 `bash deploy.sh`
