@@ -157,8 +157,8 @@ contract TokenBridge is Ownable {
         // Checks
         require(msg.value >= fee, "Needs TLOS fee passed");
         require(request_counts[msg.sender] < max_requests_per_requestor, "Maximum requests reached. Please wait for them to complete before trying again.");
-        require(bytes(receiver).length <= 12, "Receiver name cannot be over 12 characters");
-        require(bytes(receiver).length > 2, "Receiver name cannot be less than 3 characters");
+        require(bytes(receiver).length > 0, "Receiver must be at least 1 character");
+        require(bytes(receiver).length <= 13, "Receiver name cannot be over 13 characters");
         require(amount >= min_amount, "Minimum amount is not reached");
 
         // Check token has bridge address
